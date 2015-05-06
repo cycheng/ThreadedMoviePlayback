@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/CMainWindow">
+        <file>Resources/lookup.png</file>
+    </qresource>
+</RCC>
