@@ -7,6 +7,7 @@
 #endif // Q_MOC_RUN
 #include <memory>
 #include "Buffer.hpp"
+#include "Fractal.hpp"
 
 class QOpenGLBuffer;
 class QOpenGLShaderProgram;
@@ -35,10 +36,14 @@ private:
     QOpenGLShaderProgram* m_program;
     QOpenGLBuffer* m_vertexBuffer;
 
+    int m_fractalLoc;
     int m_ffmpegLoc;
 
     std::unique_ptr<CFFmpegPlayer> m_ffmpegPlayer;
     CBuffer m_ffmpegPlayerBuf;
+
+    CFractal m_fractal;
+    CBuffer m_fractalBuf;
 };
 
 #endif // GLWIDGET_HPP

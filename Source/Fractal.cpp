@@ -1,5 +1,6 @@
 #include "Stdafx.hpp"
 #include "Fractal.hpp"
+#include "Buffer.hpp"
 #include <QTime>
 #include <cmath>
 
@@ -41,9 +42,11 @@ CFractal::~CFractal()
 {
 }
 
-bool CFractal::GenerateFractal()
+bool CFractal::GenerateFractal(CBuffer& buffer)
 {
-    int width, height;
+    const int width = buffer.GetWidth();
+    const int height = buffer.GetHeight();
+    unsigned char* ptr = buffer.GetPtr();
 
     if (m_animated)
     {
@@ -58,6 +61,7 @@ bool CFractal::GenerateFractal()
         {
             int value = juliaSet<256>(i / static_cast<float>(width), j / static_cast<float>(height), m_seed.rx(), m_seed.ry());
             // TODO: *(static_cast<unsigned char*>(buffer) + i + j * width) = value;
+            *(ptr + i + j * width) = value;
         }
     }
 

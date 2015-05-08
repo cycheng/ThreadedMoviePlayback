@@ -52,11 +52,13 @@ void CGLWidget::initializeGL()
     QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
     const char *fsrc =
         "varying mediump vec2 texc;\n"
+        "uniform sampler2D fractalTex;\n"
         "uniform sampler2D videoTex;\n"
         "void main(void)\n"
         "{\n"
+        "    vec4 fractColour = texture2D(fractalTex, texc);\n"
         "    vec4 videoColour = texture2D(videoTex, texc);\n"
-        "    gl_FragColor = videoColour;\n"
+        "    gl_FragColor = fractColour.rrrr + videoColour;\n"
         "}\n";
     fshader->compileSourceCode(fsrc);
 
@@ -68,6 +70,7 @@ void CGLWidget::initializeGL()
 
     m_program->bind();
 
+    m_fractalLoc = m_program->uniformLocation("fractalTex");
     m_ffmpegLoc = m_program->uniformLocation("videoTex");
 
     CFFmpegPlayer::initFFmpeg();
@@ -99,6 +102,8 @@ void CGLWidget::resizeGL(const int width, const int height)
     glViewport(0, 0, width, height);
     m_ffmpegPlayerBuf.SetTextureSize(width, height);
     m_ffmpegPlayer->setOutputSize(width, height);
+
+    m_fractalBuf.SetTextureSize(width, height, FRACTAL_ELEM_1_BYTE);
 }
 
 bool CGLWidget::UpdateTexture(const CBuffer& buffer, GLuint& texture,
@@ -140,6 +145,9 @@ void CGLWidget::paintGL()
     upateVideo(m_ffmpegPlayer.get(), m_ffmpegPlayerBuf);
     // TODO: Call UpdateTexture() here to produce fractal and ffmpegPlayer textures
     UpdateTexture(m_ffmpegPlayerBuf, m_ffmpegPlayerTexture, GL_BGRA, GL_RGBA);
+
+    m_fractal.GenerateFractal(m_fractalBuf);
+    UpdateTexture(m_fractalBuf, m_fractalTexture, GL_RED, GL_R8);
 #if 0
     if ((m_fractalTexture == 0) || (m_ffmpegPlayerTexture == 0) || (m_lookupTexture == 0))
     {
@@ -154,8 +162,12 @@ void CGLWidget::paintGL()
     glBindTexture(GL_TEXTURE_2D, m_ffmpegPlayerTexture);
 #else
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_fractalTexture);
+    m_program->setUniformValue(m_fractalLoc, 0);
+
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, m_ffmpegPlayerTexture);
-    m_program->setUniformValue(m_ffmpegLoc, 0);
+    m_program->setUniformValue(m_ffmpegLoc, 1);
 #endif
 
     m_vertexBuffer->bind();

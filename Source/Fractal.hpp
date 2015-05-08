@@ -4,13 +4,17 @@
 #include <QObject>
 #include <QPointF>
 
+class CBuffer;
+
+#define FRACTAL_ELEM_1_BYTE 1
+
 class CFractal
 {
 public:
     CFractal();
     ~CFractal();
 
-    bool GenerateFractal();
+    bool GenerateFractal(CBuffer& buffer);
     void SetAnimated(bool animated);
     void SetSeedPoint(QPointF position);
 
