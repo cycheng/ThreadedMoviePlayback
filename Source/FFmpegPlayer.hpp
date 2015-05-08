@@ -31,12 +31,18 @@ public:
      */
     bool decodeFrame(unsigned int& pts, unsigned char* data, int lineSize);
 
+    void setOutputSize(int width, int height);
+    int getOutputSize() const;
+
 private:
     std::unique_ptr<struct AVFormatContext, void (*)(struct AVFormatContext*)> m_formatCtx;
     std::unique_ptr<struct AVCodecContext, int (*)(struct AVCodecContext*)> m_codecCtx;
     std::unique_ptr<struct AVFrame, void (*)(struct AVFrame*)> m_frame;
     struct SwsContext* m_swsCtx;
     int m_videoStream;
+
+    int m_outputWidth;
+    int m_outputHeight;
 };
 
 #endif // FFMPEGPLAYER_HPP

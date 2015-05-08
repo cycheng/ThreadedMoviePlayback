@@ -5,9 +5,12 @@
 #include <QGLWidget>
 #include <QOpenGLFunctions>
 #endif // Q_MOC_RUN
+#include <memory>
+#include "Buffer.hpp"
 
 class QOpenGLBuffer;
 class QOpenGLShaderProgram;
+class CFFmpegPlayer;
 
 class CGLWidget: public QGLWidget, protected QOpenGLFunctions
 {
@@ -23,13 +26,20 @@ protected:
     void paintGL() override;
 
 private:
-	bool UpdateTexture(/* buffer, */ GLuint&_texture, int& textureWidth, int& textureHeight);
+    bool UpdateTexture(const CBuffer& buffer, GLuint&_texture,
+        GLenum bufferFormat, GLint internalFormat /*, int& textureWidth, int& textureHeight*/);
 
     GLuint m_fractalTexture;
     GLuint m_ffmpegPlayerTexture;
     GLuint m_lookupTexture;
     QOpenGLShaderProgram* m_program;
     QOpenGLBuffer* m_vertexBuffer;
+
+    int m_ffmpegLoc;
+    int m_vertexLoc;
+
+    std::unique_ptr<CFFmpegPlayer> m_ffmpegPlayer;
+    CBuffer m_ffmpegPlayerBuf;
 };
 
 #endif // GLWIDGET_HPP
