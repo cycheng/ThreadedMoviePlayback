@@ -36,7 +36,6 @@ private:
     QOpenGLBuffer* m_vertexBuffer;
 
     int m_ffmpegLoc;
-    int m_vertexLoc;
 
     std::unique_ptr<CFFmpegPlayer> m_ffmpegPlayer;
     CBuffer m_ffmpegPlayerBuf;
