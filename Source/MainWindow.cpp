@@ -17,6 +17,10 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
 
     connect(m_timer, SIGNAL(timeout()), this, SLOT(TimerUpdate()));
     connect(m_timer, SIGNAL(timeout()), m_ui.glwidget, SLOT(updateGL()));
+
+    AllocConsole();
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
 }
 
 CMainWindow::~CMainWindow()
