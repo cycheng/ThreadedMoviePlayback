@@ -42,11 +42,11 @@ CFractal::~CFractal()
 {
 }
 
-bool CFractal::GenerateFractal(CBuffer& buffer)
+bool CFractal::GenerateFractal(CBuffer* buffer)
 {
-    const int width = buffer.GetWidth();
-    const int height = buffer.GetHeight();
-    unsigned char* ptr = buffer.GetPtr();
+    const int width = buffer->GetWidth();
+    const int height = buffer->GetHeight();
+    unsigned char* ptr = buffer->GetWorkingBuffer();
 
     if (m_animated)
     {

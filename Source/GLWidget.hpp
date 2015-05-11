@@ -12,6 +12,12 @@
 class QOpenGLBuffer;
 class QOpenGLShaderProgram;
 class CFFmpegPlayer;
+class CWorker;
+
+typedef std::unique_ptr<CBuffer> u_buffer_ptr;
+typedef std::unique_ptr<CFractal> u_fractal_ptr;
+typedef std::unique_ptr<CFFmpegPlayer> u_ffmpegplayer_ptr;
+
 
 class CGLWidget: public QGLWidget, protected QOpenGLFunctions
 {
@@ -27,7 +33,7 @@ protected:
     void paintGL() override;
 
 private:
-    bool UpdateTexture(const CBuffer& buffer, GLuint&_texture,
+    bool UpdateTexture(CBuffer* buffer, GLuint&_texture,
         GLenum bufferFormat, GLint internalFormat /*, int& textureWidth, int& textureHeight*/);
 
     GLuint m_fractalTexture;
@@ -39,11 +45,59 @@ private:
     int m_fractalLoc;
     int m_ffmpegLoc;
 
-    std::unique_ptr<CFFmpegPlayer> m_ffmpegPlayer;
-    CBuffer m_ffmpegPlayerBuf;
+    u_ffmpegplayer_ptr m_ffmpegPlayer;
+    u_buffer_ptr m_ffmpegPlayerBuf;
 
-    CFractal m_fractal;
-    CBuffer m_fractalBuf;
+    u_fractal_ptr m_fractal;
+    u_buffer_ptr m_fractalBuf;
+
+    std::vector<CWorker*> m_threads;
+};
+
+/*
+ *  usage:
+ *      Pause(), then you can call Resume() or Stop()
+ */
+class CWorker : public QThread
+{
+public:
+    CWorker();
+
+    void run() override;
+    void Pause();
+    void Stop();
+    void Resume();
+protected:
+    CThreadBuffer* m_buffer;
+private:
+    QMutex m_mutex;
+    QWaitCondition m_runSignal;
+    QWaitCondition m_pauseSignal;
+    bool m_pause;
+    bool m_stop;
+    bool m_inPauseState;
+
+    virtual void DoCompute() = 0;
+};
+
+class CVideoWorker : public CWorker
+{
+public:
+    CVideoWorker(CFFmpegPlayer* playerPtr, CThreadBuffer* bufPtr);
+private:
+    void DoCompute() override;
+    CFFmpegPlayer* m_ffmpegPlayer;
+    CThreadBuffer* m_ffmpegPlayerBuf;
+};
+
+class CFractalWorker : public CWorker
+{
+public:
+    CFractalWorker(CFractal* fractalPtr, CThreadBuffer* bufPtr);
+private:
+    void DoCompute() override;
+    CFractal* m_fractal;
+    CThreadBuffer* m_fractalBuf;
 };
 
 #endif // GLWIDGET_HPP
