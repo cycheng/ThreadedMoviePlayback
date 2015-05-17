@@ -1,22 +1,15 @@
 #include "Stdafx.hpp"
 #include "Buffer.hpp"
 #include <sstream>
+#include <assert.h>
 
-CBuffer::CBuffer(): m_width(-1), m_height(-1)
+CBuffer::CBuffer() : m_width(-1), m_height(-1), m_pixelSize(0)
 {
 }
 
 CBuffer::~CBuffer()
 {
 }
-
-//void CBuffer::InitWorkingBuffer(const unsigned char* data, size_t size)
-//{
-//    CheckSize(size);
-//
-//    unsigned char* ptr = //GetWorkingBuffer(); // m_working.get();
-//    memcpy(ptr, data, GetSize());
-//}
 
 void CBuffer::CheckSize(size_t size)
 {
@@ -29,13 +22,20 @@ void CBuffer::CheckSize(size_t size)
     }
 }
 
-void CBuffer::SetTextureSize(int width, int height, int pixelSize)
+void CBuffer::SetTextureSize(int width, int height)
 {
-    const size_t newSize = width * height * pixelSize;
+    assert(m_pixelSize);
+
+    const size_t newSize = width * height * m_pixelSize;
+
     CreateResource(newSize);
 
     m_width = width;
     m_height = height;
+}
+
+void CBuffer::SetPixelSize(int pixelSize)
+{
     m_pixelSize = pixelSize;
 }
 
@@ -59,6 +59,14 @@ int CBuffer::GetHeight() const
     return m_height;
 }
 
+int CBuffer::GetPixelSize() const
+{
+    return m_pixelSize;
+}
+
+// -----------------------------------------------------------------------------
+// CSingleBuffer Functions
+// -----------------------------------------------------------------------------
 void CSingleBuffer::CreateResource(size_t newSize)
 {
     if (newSize != GetSize())
@@ -67,22 +75,25 @@ void CSingleBuffer::CreateResource(size_t newSize)
     }
 }
 
-unsigned char* CSingleBuffer::GetWorkingBuffer()
+unsigned char* CSingleBuffer::GetWorkingBuffer() const
 {
     return m_buffer.get();
 }
 
-unsigned char* CSingleBuffer::GetStableBuffer()
+unsigned char* CSingleBuffer::GetStableBuffer() const
 {
     return m_buffer.get();
 }
 
-void CSingleBuffer::InitWorkingBufferWithZero()
+void CSingleBuffer::InitResultBufferWithZero()
 {
-    unsigned char* ptr = m_buffer.get();//GetWorkingBuffer(); // m_working.get();
+    unsigned char* ptr = m_buffer.get();
     memset(ptr, 0, GetSize());
 }
 
+// -----------------------------------------------------------------------------
+// CTripleBuffer Functions
+// -----------------------------------------------------------------------------
 CTripleBuffer::CTripleBuffer() : m_workingCopyEmpty(true)
 {
 }
@@ -97,50 +108,62 @@ void CTripleBuffer::CreateResource(size_t newSize)
     }
 }
 
-unsigned char* CTripleBuffer::GetWorkingBuffer()
-{
-    QMutexLocker locker(&m_mutex);
-
-    if (! m_workingCopyEmpty)
-    {
-        m_emptySignal.wait(&m_mutex);
-    }
-
-    m_working.swap(m_workingCopy);
-    //SwapBuffer(m_working, m_workingCopy);
-    m_workingCopyEmpty = false;
-
-    return m_working.get();
-}
-
-
-unsigned char* CTripleBuffer::GetStableBuffer()
-{
-    QMutexLocker locker(&m_mutex);
-
-    if (! m_workingCopyEmpty)
-    {
-        //SwapBuffer(m_stable, m_workingCopy);
-        m_stable.swap(m_workingCopy);
-        m_workingCopyEmpty = true;
-
-        locker.unlock();
-        m_emptySignal.wakeOne();
-    }
-
-    return m_stable.get();
-}
-
-void CTripleBuffer::InitWorkingBufferWithZero()
+void CTripleBuffer::InitResultBufferWithZero()
 {
     unsigned char* ptr = m_working.get();
     memset(ptr, 0, GetSize());
     m_workingCopyEmpty = false;
 }
 
-void CTripleBuffer::Wakeup()
+unsigned char* CTripleBuffer::GetWorkingBuffer() const
 {
-    QMutexLocker locker(&m_mutex);
+    return m_working.get();
+}
+
+unsigned char* CTripleBuffer::GetStableBuffer() const
+{
+    return m_stable.get();
+}
+
+bool CTripleBuffer::CanWeSwapWorkingBuffer()
+{
+    return m_workingCopyEmpty;
+}
+
+bool CTripleBuffer::CanWeSwapStableBuffer()
+{
+    return ! m_workingCopyEmpty;
+}
+
+void CTripleBuffer::SwapWorkingBuffer()
+{
+    m_working.swap(m_workingCopy);
+    m_workingCopyEmpty = false;
+}
+
+void CTripleBuffer::SwapStableBuffer()
+{
+    m_stable.swap(m_workingCopy);
     m_workingCopyEmpty = true;
-    m_emptySignal.wakeOne();
+}
+
+// -----------------------------------------------------------------------------
+// Helper Functions
+// -----------------------------------------------------------------------------
+int GetGLPixelSize(GLenum glImgFmt) {
+    switch (glImgFmt) {
+    case GL_RGBA:
+    case GL_BGRA:
+        return 4;
+
+    case GL_RED:
+    case GL_ALPHA:
+    case GL_LUMINANCE:
+        return 1;
+
+    default:
+        // TODO
+        assert(false);
+        return 0;
+    }
 }

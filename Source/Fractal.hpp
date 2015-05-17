@@ -14,7 +14,7 @@ public:
     CFractal();
     ~CFractal();
 
-    bool GenerateFractal(CBuffer* buffer);
+    bool GenerateFractal(int width, int height, unsigned char* data);
     void SetAnimated(bool animated);
     void SetSeedPoint(QPointF position);
 

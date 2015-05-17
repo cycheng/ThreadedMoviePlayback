@@ -43,6 +43,7 @@ private:
 
     int m_outputWidth;
     int m_outputHeight;
+    int m_pixelSize;
 };
 
 #endif // FFMPEGPLAYER_HPP

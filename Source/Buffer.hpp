@@ -3,29 +3,26 @@
 
 #include <memory>
 
-#define BGRA_4_BYTES 4
+typedef std::unique_ptr<unsigned char[]> u_data_ptr;
 
 class CBuffer
 {
 public:
-    typedef std::unique_ptr<unsigned char[]> smart_ptr;
-
     explicit CBuffer();
     virtual ~CBuffer();
 
-    virtual unsigned char* GetWorkingBuffer() = 0;
-    virtual unsigned char* GetStableBuffer() = 0;
+    virtual unsigned char* GetWorkingBuffer() const = 0;
+    virtual unsigned char* GetStableBuffer() const = 0;
+    virtual void InitResultBufferWithZero() = 0;
 
-    //void InitWorkingBuffer(const unsigned char* data, size_t size);
-    virtual void InitWorkingBufferWithZero() = 0;
+    void SetTextureSize(int width, int height);
+    void SetPixelSize(int pixelSize);
 
-    void SetTextureSize(int width, int height, int pixelSize = BGRA_4_BYTES);
-
-    //unsigned char* GetPtr() const;
     int GetSize() const;
     int GetRowSize() const;
     int GetWidth() const;
     int GetHeight() const;
+    int GetPixelSize() const;
 
 protected:
     void CheckSize(size_t size);
@@ -41,43 +38,51 @@ private:
 class CSingleBuffer : public CBuffer
 {
 public:
-    unsigned char* GetWorkingBuffer() override;
-    unsigned char* GetStableBuffer() override;
+    unsigned char* GetWorkingBuffer() const override;
+    unsigned char* GetStableBuffer() const override;
 
-    void InitWorkingBufferWithZero() override;
+    void InitResultBufferWithZero() override;
 private:
     void CreateResource(size_t newSize) override;
 
-    smart_ptr m_buffer;
+    u_data_ptr m_buffer;
 };
 
-class CThreadBuffer : public CBuffer
+class CWorkerBuffer : public CBuffer
 {
 public:
-    virtual void Wakeup() = 0;
-
+    virtual bool CanWeSwapWorkingBuffer() = 0;
+    virtual bool CanWeSwapStableBuffer() = 0;
+    virtual void SwapWorkingBuffer() = 0;
+    virtual void SwapStableBuffer() = 0;
 };
 
-class CTripleBuffer : public CThreadBuffer
+class CTripleBuffer : public CWorkerBuffer
 {
 public:
     CTripleBuffer();
 
-    unsigned char* GetWorkingBuffer() override;
-    unsigned char* GetStableBuffer() override;
-    void InitWorkingBufferWithZero() override;
-    void Wakeup() override;
+    unsigned char* GetWorkingBuffer() const override;
+    unsigned char* GetStableBuffer() const override;
+    void InitResultBufferWithZero() override;
+
+    bool CanWeSwapWorkingBuffer() override;
+    bool CanWeSwapStableBuffer() override;
+    void SwapWorkingBuffer() override;
+    void SwapStableBuffer() override;
+
 private:
     void CreateResource(size_t newSize) override;
-    //void SwapBuffer(smart_ptr& buf1, smart_ptr& buf2);
 
-    QMutex m_mutex;
-    QWaitCondition m_emptySignal;
     bool m_workingCopyEmpty;
 
-    smart_ptr m_working;
-    smart_ptr m_stable;
-    smart_ptr m_workingCopy;
+    u_data_ptr m_working;
+    u_data_ptr m_stable;
+    u_data_ptr m_workingCopy;
 };
+
+/** Helper functions
+ */
+int GetGLPixelSize(GLenum glImgFmt);
 
 #endif // BUFFER_HPP

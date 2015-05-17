@@ -3,6 +3,7 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <iostream>
+#include <assert.h>
 
 #include "FFmpegPlayer.hpp"
 #include "Buffer.hpp"
@@ -79,44 +80,28 @@ void CGLWidget::initializeGL()
     m_fractalLoc = m_program->uniformLocation("fractalTex");
     m_ffmpegLoc = m_program->uniformLocation("videoTex");
 
+    m_threads.push_back(new CWorker);
+    m_threads.push_back(new CWorker);
+
+    std::for_each(m_threads.begin(), m_threads.end(),
+        [](CWorker* w) {
+        w->UseTripleBuffer();
+        w->start();
+    });
+
     CFFmpegPlayer::initFFmpeg();
-    try {
-        std::unique_ptr<CFFmpegPlayer> player(
-            new CFFmpegPlayer("../TestVideo/big_buck_bunny_480p_stereo.avi"));
+    m_videoTex.reset(new CVideoTexture);
+    m_videoTex->ChangeVideo("../TestVideo/big_buck_bunny_480p_stereo.avi");
+    m_videoTex->BindWorker(m_threads[0]);
 
-        m_ffmpegPlayer = std::move(player);
-    }
-    catch (std::runtime_error &e) {
-        std::cout << e.what() << std::endl;
-    }
-    catch (...) {
-        std::cout << "Unknown error" << std::endl;
-    }
-
-    m_ffmpegPlayerBuf.reset(new CTripleBuffer);
-    m_fractalBuf.reset(new CTripleBuffer);
-
-    m_fractal.reset(new CFractal);
-
-    m_threads.push_back(new CVideoWorker(m_ffmpegPlayer.get(), (CThreadBuffer*)m_ffmpegPlayerBuf.get()));
-    m_threads.push_back(new CFractalWorker(m_fractal.get(), (CThreadBuffer*)m_fractalBuf.get()));
+    m_fractalTex.reset(new CFractalTexture);
+    m_fractalTex->SetTextureFormat(GL_RED, GL_R8);
+    m_fractalTex->BindWorker(m_threads[1]);
 
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
-            t->start();
             t->Pause();
-        }
-    );
-}
-
-void upateVideo(CFFmpegPlayer* video, CBuffer* buf) {
-    unsigned int pts;
-    bool newframe = false;
-    unsigned char* dest = buf->GetWorkingBuffer();
-
-    while (! newframe) {
-        newframe = video->decodeFrame(pts, dest, buf->GetRowSize());
-    }
+        });
 }
 
 void CGLWidget::resizeGL(const int width, const int height)
@@ -125,67 +110,66 @@ void CGLWidget::resizeGL(const int width, const int height)
 
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
-        t->Pause();
-    }
-    );
+            t->Pause();
+        });
 
-    m_ffmpegPlayerBuf->SetTextureSize(width, height);
-    m_ffmpegPlayer->setOutputSize(width, height);
+    m_videoTex->Resize(width, height);
+    CreateTexture(m_videoTex.get());
 
-    m_fractalBuf->SetTextureSize(width, height, FRACTAL_ELEM_1_BYTE);
-
-    m_ffmpegPlayerBuf->InitWorkingBufferWithZero();
-    m_fractalBuf->InitWorkingBufferWithZero();
+    m_fractalTex->Resize(width, height);
+    CreateTexture(m_fractalTex.get());
 
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
-        t->Resume();
-    }
-    );
+            t->Resume();
+        });
 }
 
-bool CGLWidget::UpdateTexture(CBuffer* buffer, GLuint& texture,
-    GLenum bufferFormat, GLint internalFormat/*, int& textureWidth, int& textureHeight*/)
+void CGLWidget::CreateTexture(CTextureObject* texObj)
 {
-    // TODO: Find a way to bind ptr to the image buffer produced
-    void* ptr = buffer->GetStableBuffer();
-    const int textureWidth = buffer->GetWidth();
-    const int textureHeight = buffer->GetHeight();
+    CBuffer* buf = texObj->GetBuffer();
+    GLuint textureId = texObj->GetTextureID();
 
-    //glActiveTexture(GL_TEXTURE0);
-
-    if (texture != 0)
+    if (textureId != 0)
     {
-        glDeleteTextures(1, &texture);
+        glDeleteTextures(1, &textureId);
     }
 
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, textureWidth, textureHeight, 0, bufferFormat, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, texObj->GetInternalFormat(),
+                 buf->GetWidth(), buf->GetHeight(),
+                 0, texObj->GetBufferFormat(), GL_UNSIGNED_BYTE, nullptr);
 
-    glBindTexture(GL_TEXTURE_2D, texture);
+    texObj->SetNewTextureId(textureId);
+}
+
+void CGLWidget::UpdateTexture(const CTextureObject* texObj, const CBuffer* buf)
+{
+    void* data = buf->GetStableBuffer();
+
+    glBindTexture(GL_TEXTURE_2D, texObj->GetTextureID());
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, bufferFormat, GL_UNSIGNED_BYTE, ptr);
-
-	return true;
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, buf->GetWidth(), buf->GetHeight(),
+                    texObj->GetBufferFormat(), GL_UNSIGNED_BYTE, data);
 }
 
 void CGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //upateVideo(m_ffmpegPlayer.get(), m_ffmpegPlayerBuf);
-    // TODO: Call UpdateTexture() here to produce fractal and ffmpegPlayer textures
-    UpdateTexture(m_ffmpegPlayerBuf.get(), m_ffmpegPlayerTexture, GL_BGRA, GL_RGBA);
+    const CBuffer* updatedBuf = nullptr;
+    updatedBuf = m_videoTex->GetWorker()->GetUpdatedBufferAndSignalWorker();
+    UpdateTexture(m_videoTex.get(), updatedBuf);
+    updatedBuf = m_fractalTex->GetWorker()->GetUpdatedBufferAndSignalWorker();
+    UpdateTexture(m_fractalTex.get(), updatedBuf);
 
-    //m_fractal.GenerateFractal(m_fractalBuf);
-    UpdateTexture(m_fractalBuf.get(), m_fractalTexture, GL_RED, GL_R8);
 #if 0
     if ((m_fractalTexture == 0) || (m_ffmpegPlayerTexture == 0) || (m_lookupTexture == 0))
     {
@@ -200,11 +184,11 @@ void CGLWidget::paintGL()
     glBindTexture(GL_TEXTURE_2D, m_ffmpegPlayerTexture);
 #else
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_fractalTexture);
+    glBindTexture(GL_TEXTURE_2D, m_fractalTex->GetTextureID());
     m_program->setUniformValue(m_fractalLoc, 0);
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, m_ffmpegPlayerTexture);
+    glBindTexture(GL_TEXTURE_2D, m_videoTex->GetTextureID());
     m_program->setUniformValue(m_ffmpegLoc, 1);
 #endif
 
@@ -215,90 +199,257 @@ void CGLWidget::paintGL()
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-CWorker::CWorker() : m_pause(true), m_stop(false), m_inPauseState(false)
+CWorker::CWorker() : m_pause(true), m_stop(false),
+    m_inPauseState(false), m_inSwapWaitState(false),
+    m_buffer(nullptr), m_texObj(nullptr)
 {
 }
 
 void CWorker::run()
 {
+    {
+        QMutexLocker locker(&m_mutex);
+        assert(m_pause);
+
+        m_pauseSignal.wakeOne();
+        m_inPauseState = true;
+        m_runSignal.wait(&m_mutex);
+        m_inPauseState = false;
+    }
+
     forever
     {
+        m_texObj->DoUpdate(m_buffer.get());
+
         {
             QMutexLocker locker(&m_mutex);
+
             if (m_pause) {
-                m_inPauseState = true;
                 m_pauseSignal.wakeOne();
+                m_inPauseState = true;
                 m_runSignal.wait(&m_mutex);
+                m_inPauseState = false;
             }
 
             if (m_stop) {
                 m_pauseSignal.wakeOne();
                 break;
             }
-        }
 
-        DoCompute();
+            if (! m_buffer->CanWeSwapWorkingBuffer()) {
+                m_inSwapWaitState = true;
+                m_swapBufferSignal.wait(&m_mutex);
+                m_inSwapWaitState = false;
+            }
+
+            m_buffer->SwapWorkingBuffer();
+        }
     }
+}
+
+const CBuffer* CWorker::GetUpdatedBufferAndSignalWorker()
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (m_buffer->CanWeSwapStableBuffer())
+    {
+        m_buffer->SwapStableBuffer();
+
+        locker.unlock();
+        m_swapBufferSignal.wakeOne();
+    }
+
+    return m_buffer.get();
 }
 
 void CWorker::Pause()
 {
     QMutexLocker locker(&m_mutex);
-    if (m_stop) {
-        throw std::runtime_error("[ERROR] Incorrect CWorker state. m_stop should be false\n");
+
+    if (m_inPauseState || m_inSwapWaitState) {
+        return;
     }
 
-    if (! m_inPauseState)
+    m_pause = true;
+    m_pauseSignal.wait(&m_mutex);
+}
+
+void CWorker::Resume()
+{
+    QMutexLocker locker(&m_mutex);
+
+    // Don't resume if there is no work to do
+    if (m_texObj == nullptr) {
+        return;
+    }
+
+    if (m_inPauseState)
     {
-        m_pause = true;
-        m_buffer->Wakeup();
-        m_pauseSignal.wait(&m_mutex);
+        m_pause = false;
+
+        locker.unlock();
+        m_runSignal.wakeOne();
     }
 }
 
 void CWorker::Stop()
 {
     QMutexLocker locker(&m_mutex);
-    if (! m_stop)
-    {
-        m_stop = true;
-        m_buffer->Wakeup();
-        m_pauseSignal.wait(&m_mutex);
-    }
-}
 
-void CWorker::Resume()
-{
-    QMutexLocker locker(&m_mutex);
-    if (m_inPauseState)
-    {
+    if (m_stop) {
+        return;
+    }
+
+    m_stop = true;
+
+    if (m_inSwapWaitState) {
+        m_swapBufferSignal.wakeOne();
+    }
+
+    if (m_inPauseState) {
         m_pause = false;
-        m_inPauseState = false;
-        locker.unlock();
         m_runSignal.wakeOne();
     }
+
+    m_pauseSignal.wait(&m_mutex);
 }
 
-CVideoWorker::CVideoWorker(CFFmpegPlayer* playerPtr, CThreadBuffer* bufPtr)
+void CWorker::UseTripleBuffer()
 {
-    m_ffmpegPlayer = playerPtr;
-    m_ffmpegPlayerBuf = bufPtr;
-    m_buffer = bufPtr;
+    // todo !!
+    assert(m_buffer == false);
+
+    m_buffer.reset(new CTripleBuffer);
 }
 
-void CVideoWorker::DoCompute()
+void CWorker::BindTextureObject(CTextureObject* texObj)
 {
-    upateVideo(m_ffmpegPlayer, m_ffmpegPlayerBuf);
+    m_texObj = texObj;
+    m_buffer->SetPixelSize(texObj->GetBuffer()->GetPixelSize());
 }
 
-CFractalWorker::CFractalWorker(CFractal* fractalPtr, CThreadBuffer* bufPtr)
+CBuffer* CWorker::GetInternalBuffer()
 {
-    m_fractal = fractalPtr;
-    m_fractalBuf = bufPtr;
-    m_buffer = bufPtr;
+    return m_buffer.get();
 }
 
-void CFractalWorker::DoCompute()
+CTextureObject::CTextureObject() : m_worker(nullptr), m_textureId(0),
+                                   m_bufferFmt(0), m_internalFmt(0)
 {
-    m_fractal->GenerateFractal(m_fractalBuf);
+}
+
+CTextureObject::~CTextureObject()
+{
+}
+
+void CTextureObject::Resize(int width, int height)
+{
+    if (m_buffer.GetWidth() == width && m_buffer.GetHeight() == height) {
+        return;
+    }
+
+    if (m_worker) {
+        m_worker->GetInternalBuffer()->SetTextureSize(width, height);
+        m_worker->GetInternalBuffer()->InitResultBufferWithZero();
+    }
+    m_buffer.SetTextureSize(width, height);
+    m_buffer.InitResultBufferWithZero();
+    // CreateTexture is called by external
+}
+
+void CTextureObject::Update()
+{
+    DoUpdate(&m_buffer);
+}
+
+void CTextureObject::BindWorker(CWorker* worker)
+{
+    worker->BindTextureObject(this);
+    m_worker = worker;
+}
+
+void CTextureObject::SetTextureFormat(GLenum bufferFmt, GLint internalFmt)
+{
+    m_bufferFmt = bufferFmt;
+    m_internalFmt = internalFmt;
+    m_buffer.SetPixelSize(GetGLPixelSize(bufferFmt));
+}
+
+void CTextureObject::SetNewTextureId(GLuint newGLId)
+{
+    m_textureId = newGLId;
+}
+
+CBuffer* CTextureObject::GetBuffer()
+{
+    return &m_buffer;
+}
+
+CWorker* CTextureObject::GetWorker()
+{
+    return m_worker;
+}
+
+GLuint CTextureObject::GetTextureID() const
+{
+    return m_textureId;
+}
+
+GLenum CTextureObject::GetBufferFormat() const
+{
+    return m_bufferFmt;
+}
+
+GLint CTextureObject::GetInternalFormat() const
+{
+    return m_internalFmt;
+}
+
+void CVideoTexture::DoUpdate(CBuffer* buffer)
+{
+    unsigned int pts;
+    bool newframe = false;
+
+    while (! newframe) {
+        newframe = m_ffmpegPlayer->decodeFrame(
+            pts,
+            buffer->GetWorkingBuffer(), buffer->GetRowSize());
+    }
+}
+
+void CVideoTexture::Resize(int width, int height)
+{
+    CTextureObject::Resize(width, height);
+    m_ffmpegPlayer->setOutputSize(width, height);
+}
+
+bool CVideoTexture::ChangeVideo(const std::string& fileName)
+{
+    try {
+        std::unique_ptr<CFFmpegPlayer> player(
+            new CFFmpegPlayer(fileName));
+
+        m_ffmpegPlayer = std::move(player);
+        SetTextureFormat(GL_BGRA, GL_RGBA);
+
+        return true;
+    }
+    catch (std::runtime_error &e) {
+        std::cout << e.what() << std::endl;
+    }
+    catch (...) {
+        std::cout << "Unknown error" << std::endl;
+    }
+    return false;
+}
+
+CFractalTexture::CFractalTexture()
+{
+    m_fractal.reset(new CFractal);
+}
+
+void CFractalTexture::DoUpdate(CBuffer* buffer)
+{
+    m_fractal->GenerateFractal(buffer->GetWidth(), buffer->GetHeight(),
+                               buffer->GetWorkingBuffer());
 }

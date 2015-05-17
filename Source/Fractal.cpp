@@ -42,12 +42,8 @@ CFractal::~CFractal()
 {
 }
 
-bool CFractal::GenerateFractal(CBuffer* buffer)
+bool CFractal::GenerateFractal(int width, int height, unsigned char* data)
 {
-    const int width = buffer->GetWidth();
-    const int height = buffer->GetHeight();
-    unsigned char* ptr = buffer->GetWorkingBuffer();
-
     if (m_animated)
     {
         float t = QTime::currentTime().msecsSinceStartOfDay() / 5000.0;
@@ -61,7 +57,7 @@ bool CFractal::GenerateFractal(CBuffer* buffer)
         {
             int value = juliaSet<256>(i / static_cast<float>(width), j / static_cast<float>(height), m_seed.rx(), m_seed.ry());
             // TODO: *(static_cast<unsigned char*>(buffer) + i + j * width) = value;
-            *(ptr + i + j * width) = value;
+            *(data + i + j * width) = value;
         }
     }
 

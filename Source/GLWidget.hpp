@@ -12,12 +12,11 @@
 class QOpenGLBuffer;
 class QOpenGLShaderProgram;
 class CFFmpegPlayer;
+
 class CWorker;
-
-typedef std::unique_ptr<CBuffer> u_buffer_ptr;
-typedef std::unique_ptr<CFractal> u_fractal_ptr;
-typedef std::unique_ptr<CFFmpegPlayer> u_ffmpegplayer_ptr;
-
+class CTextureObject;
+class CVideoTexture;
+class CFractalTexture;
 
 class CGLWidget: public QGLWidget, protected QOpenGLFunctions
 {
@@ -33,8 +32,8 @@ protected:
     void paintGL() override;
 
 private:
-    bool UpdateTexture(CBuffer* buffer, GLuint&_texture,
-        GLenum bufferFormat, GLint internalFormat /*, int& textureWidth, int& textureHeight*/);
+    void CreateTexture(CTextureObject* texObj);
+    void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
 
     GLuint m_fractalTexture;
     GLuint m_ffmpegPlayerTexture;
@@ -45,11 +44,8 @@ private:
     int m_fractalLoc;
     int m_ffmpegLoc;
 
-    u_ffmpegplayer_ptr m_ffmpegPlayer;
-    u_buffer_ptr m_ffmpegPlayerBuf;
-
-    u_fractal_ptr m_fractal;
-    u_buffer_ptr m_fractalBuf;
+    std::unique_ptr<CVideoTexture> m_videoTex;
+    std::unique_ptr<CFractalTexture> m_fractalTex;
 
     std::vector<CWorker*> m_threads;
 };
@@ -67,37 +63,79 @@ public:
     void Pause();
     void Stop();
     void Resume();
-protected:
-    CThreadBuffer* m_buffer;
+
+    const CBuffer* GetUpdatedBufferAndSignalWorker();
+
+    //void UseDoubleBuffer();
+    void UseTripleBuffer();
+    void BindTextureObject(CTextureObject* texObj);
+    CBuffer* GetInternalBuffer();
+
 private:
     QMutex m_mutex;
+
     QWaitCondition m_runSignal;
     QWaitCondition m_pauseSignal;
+    QWaitCondition m_swapBufferSignal;
+
     bool m_pause;
     bool m_stop;
     bool m_inPauseState;
+    bool m_inSwapWaitState;
 
-    virtual void DoCompute() = 0;
+    std::unique_ptr<CWorkerBuffer> m_buffer;
+    CTextureObject* m_texObj;
 };
 
-class CVideoWorker : public CWorker
+class CTextureObject
 {
 public:
-    CVideoWorker(CFFmpegPlayer* playerPtr, CThreadBuffer* bufPtr);
+    CTextureObject();
+    virtual ~CTextureObject();
+
+    virtual void DoUpdate(CBuffer* buffer) = 0;
+    virtual void Resize(int width, int height);
+
+    void Update();
+    void BindWorker(CWorker* worker);
+    void SetTextureFormat(GLenum bufferFmt, GLint internalFmt);
+    void SetNewTextureId(GLuint newGLId);
+
+    CBuffer* GetBuffer();
+    CWorker* GetWorker();
+
+    GLuint GetTextureID() const;
+    GLenum GetBufferFormat() const;
+    GLint GetInternalFormat() const;
+
 private:
-    void DoCompute() override;
-    CFFmpegPlayer* m_ffmpegPlayer;
-    CThreadBuffer* m_ffmpegPlayerBuf;
+    CWorker* m_worker;
+    CSingleBuffer m_buffer;
+    GLuint m_textureId;
+    GLenum m_bufferFmt;
+    GLint m_internalFmt;
 };
 
-class CFractalWorker : public CWorker
+class CVideoTexture: public CTextureObject
 {
 public:
-    CFractalWorker(CFractal* fractalPtr, CThreadBuffer* bufPtr);
+    void DoUpdate(CBuffer* buffer) override;
+    void Resize(int width, int height) override;
+
+    bool ChangeVideo(const std::string& fileName);
+
 private:
-    void DoCompute() override;
-    CFractal* m_fractal;
-    CThreadBuffer* m_fractalBuf;
+    std::unique_ptr<CFFmpegPlayer> m_ffmpegPlayer;
+};
+
+class CFractalTexture: public CTextureObject
+{
+public:
+    CFractalTexture();
+    void DoUpdate(CBuffer* buffer) override;
+
+private:
+    std::unique_ptr<CFractal> m_fractal;
 };
 
 #endif // GLWIDGET_HPP

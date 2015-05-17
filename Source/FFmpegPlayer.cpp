@@ -81,6 +81,7 @@ CFFmpegPlayer::CFFmpegPlayer(const std::string& fileName): m_formatCtx(nullptr, 
 
     m_outputWidth = 0;
     m_outputHeight = 0;
+    m_pixelSize = 0;
     setOutputSize(m_codecCtx->width, m_codecCtx->height);
 }
 
@@ -96,10 +97,11 @@ void CFFmpegPlayer::setOutputSize(int width, int height) {
     m_swsCtx = sws_getCachedContext(m_swsCtx, m_codecCtx->width, m_codecCtx->height,
         m_codecCtx->pix_fmt, width, height,
         AV_PIX_FMT_BGRA, SWS_POINT, nullptr, nullptr, nullptr);
+    m_pixelSize = GetGLPixelSize(GL_BGRA);
 }
 
 int CFFmpegPlayer::getOutputSize() const {
-    return m_outputWidth * m_outputHeight * BGRA_4_BYTES;
+    return m_outputWidth * m_outputHeight * m_pixelSize;
 }
 
 bool CFFmpegPlayer::decodeFrame(unsigned int& pts, unsigned char* data, int lineSize)
