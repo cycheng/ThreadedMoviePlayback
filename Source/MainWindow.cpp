@@ -29,7 +29,18 @@ CMainWindow::~CMainWindow()
 
 void CMainWindow::TimerUpdate()
 {
+    static int prevTime = QTime::currentTime().msecsSinceStartOfDay();
+    static int numFrame = 0;
     int currentTime = QTime::currentTime().msecsSinceStartOfDay();
-    // TODO: compute and display FPS
-    m_fps->setText(""); 
+
+    // update fps every 0.5 sec
+    numFrame++;
+    if (currentTime - prevTime > 500) {
+        float fps = (float)(currentTime - prevTime) / (float)numFrame;
+        fps = 1000.f / fps;
+        QString msg = "fps = " + QString::number(fps);
+        m_fps->setText(msg);
+        prevTime = currentTime;
+        numFrame = 0;
+    }
 }
