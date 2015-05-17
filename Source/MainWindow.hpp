@@ -19,6 +19,8 @@ public:
 
 private slots:
     void TimerUpdate();
+    void UseTripleBuffer(bool checked);
+    void UseSingleBuffer(bool checked);
 
 private:
     Ui::CMainWindowClass m_ui;

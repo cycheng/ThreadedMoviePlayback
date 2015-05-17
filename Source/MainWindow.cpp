@@ -1,6 +1,6 @@
 #include "Stdafx.hpp"
 #include "MainWindow.hpp"
-#include "Buffer.hpp"
+
 #include <QProgressBar>
 #include <QTime>
 #include <QTimer>
@@ -17,6 +17,8 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
 
     connect(m_timer, SIGNAL(timeout()), this, SLOT(TimerUpdate()));
     connect(m_timer, SIGNAL(timeout()), m_ui.glwidget, SLOT(updateGL()));
+    connect(m_ui.noThreading, SIGNAL(toggled(bool)), this, SLOT(UseSingleBuffer(bool)));
+    connect(m_ui.tripleBuffer, SIGNAL(toggled(bool)), this, SLOT(UseTripleBuffer(bool)));
 
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
@@ -44,3 +46,16 @@ void CMainWindow::TimerUpdate()
         numFrame = 0;
     }
 }
+
+void CMainWindow::UseTripleBuffer(bool checked)
+{
+    if (checked)
+        m_ui.glwidget->ChangeBufferMode(CGLWidget::BF_TRIPLE);
+}
+
+void CMainWindow::UseSingleBuffer(bool checked)
+{
+    if (checked)
+        m_ui.glwidget->ChangeBufferMode(CGLWidget::BF_SINGLE);
+}
+

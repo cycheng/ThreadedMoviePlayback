@@ -23,8 +23,13 @@ class CGLWidget: public QGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
+    enum BUFFER_MODE {
+        BF_SINGLE = 1, BF_TRIPLE
+    };
     explicit CGLWidget(QWidget* parent = nullptr, QGLWidget* shareWidget = nullptr);
     ~CGLWidget();
+
+    void ChangeBufferMode(BUFFER_MODE mode);
 
 protected:
     void initializeGL() override;
@@ -34,6 +39,7 @@ protected:
 private:
     void CreateTexture(CTextureObject* texObj);
     void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
+    void ProcessEventAfterPaint();
 
     GLuint m_fractalTexture;
     GLuint m_ffmpegPlayerTexture;
@@ -48,6 +54,11 @@ private:
     std::unique_ptr<CFractalTexture> m_fractalTex;
 
     std::vector<CWorker*> m_threads;
+    std::vector<CTextureObject*> m_textures;
+
+    BUFFER_MODE m_bufferMode;
+    bool m_threadMode;
+    bool m_fireBufferModeChange;
 };
 
 /*

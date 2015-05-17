@@ -10,7 +10,9 @@
 
 CGLWidget::CGLWidget(QWidget* parent, QGLWidget* shareWidget): QGLWidget(parent, shareWidget), m_fractalTexture(0),
                                                                m_ffmpegPlayerTexture(0), m_lookupTexture(0),
-                                                               m_program(nullptr), m_vertexBuffer(nullptr)
+                                                               m_program(nullptr), m_vertexBuffer(nullptr),
+                                                               m_threadMode(false), m_fireBufferModeChange(false),
+                                                               m_bufferMode(BF_SINGLE)
 {
 }
 
@@ -25,6 +27,15 @@ CGLWidget::~CGLWidget()
     glDeleteTextures(1, &m_fractalTexture);
     glDeleteTextures(1, &m_ffmpegPlayerTexture);
     glDeleteTextures(1, &m_lookupTexture);
+}
+
+void CGLWidget::ChangeBufferMode(BUFFER_MODE mode)
+{
+    if (m_bufferMode == mode)
+        return;
+
+    m_bufferMode = mode;
+    m_fireBufferModeChange = true;
 }
 
 void CGLWidget::initializeGL()
@@ -98,6 +109,9 @@ void CGLWidget::initializeGL()
     m_fractalTex->SetTextureFormat(GL_RED, GL_R8);
     m_fractalTex->BindWorker(m_threads[1]);
 
+    m_textures.push_back(m_videoTex.get());
+    m_textures.push_back(m_fractalTex.get());
+
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
             t->Pause();
@@ -108,21 +122,25 @@ void CGLWidget::resizeGL(const int width, const int height)
 {
     glViewport(0, 0, width, height);
 
-    std::for_each(m_threads.begin(), m_threads.end(),
-        [](CWorker* t) {
-            t->Pause();
+    if (m_threadMode) {
+        std::for_each(m_threads.begin(), m_threads.end(),
+            [](CWorker* t) {
+                t->Pause();
+            });
+    }
+
+    std::for_each(m_textures.begin(), m_textures.end(),
+        [this, width, height](CTextureObject* texObj) {
+            texObj->Resize(width, height);
+            CreateTexture(texObj);
         });
 
-    m_videoTex->Resize(width, height);
-    CreateTexture(m_videoTex.get());
-
-    m_fractalTex->Resize(width, height);
-    CreateTexture(m_fractalTex.get());
-
-    std::for_each(m_threads.begin(), m_threads.end(),
-        [](CWorker* t) {
-            t->Resume();
-        });
+    if (m_threadMode) {
+        std::for_each(m_threads.begin(), m_threads.end(),
+            [](CWorker* t) {
+                t->Resume();
+            });
+    }
 }
 
 void CGLWidget::CreateTexture(CTextureObject* texObj)
@@ -160,15 +178,60 @@ void CGLWidget::UpdateTexture(const CTextureObject* texObj, const CBuffer* buf)
                     texObj->GetBufferFormat(), GL_UNSIGNED_BYTE, data);
 }
 
+void CGLWidget::ProcessEventAfterPaint()
+{
+    if (! m_fireBufferModeChange)
+        return;
+
+    if (m_threadMode) {
+        std::for_each(m_threads.begin(), m_threads.end(),
+            [](CWorker* t) {
+            t->Pause();
+        });
+    }
+
+    if (m_fireBufferModeChange)
+    {
+        if (m_bufferMode == BF_SINGLE)
+        {
+            m_threadMode = false;
+        }
+        else if (m_bufferMode == BF_TRIPLE)
+        {
+            m_threadMode = true;
+        }
+        m_fireBufferModeChange = false;
+    }
+
+    if (m_threadMode) {
+        std::for_each(m_threads.begin(), m_threads.end(),
+            [](CWorker* t) {
+            t->Resume();
+        });
+    }
+}
+
 void CGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const CBuffer* updatedBuf = nullptr;
-    updatedBuf = m_videoTex->GetWorker()->GetUpdatedBufferAndSignalWorker();
-    UpdateTexture(m_videoTex.get(), updatedBuf);
-    updatedBuf = m_fractalTex->GetWorker()->GetUpdatedBufferAndSignalWorker();
-    UpdateTexture(m_fractalTex.get(), updatedBuf);
+    if (m_threadMode)
+    {
+        for (auto& texObj : m_textures)
+        {
+            const CBuffer* updatedBuf =
+                texObj->GetWorker()->GetUpdatedBufferAndSignalWorker();
+            UpdateTexture(texObj, updatedBuf);
+        }
+    }
+    else {
+        for (auto& texObj : m_textures)
+        {
+            texObj->Update();
+            UpdateTexture(texObj, texObj->GetBuffer());
+        }
+    }
 
 #if 0
     if ((m_fractalTexture == 0) || (m_ffmpegPlayerTexture == 0) || (m_lookupTexture == 0))
@@ -197,6 +260,8 @@ void CGLWidget::paintGL()
     glVertexPointer(2, GL_FLOAT, 0, 0);
     glEnableClientState(GL_VERTEX_ARRAY);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    ProcessEventAfterPaint();
 }
 
 CWorker::CWorker() : m_pause(true), m_stop(false),
