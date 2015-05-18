@@ -51,12 +51,36 @@ void CGLWidget::ChangeBufferMode(BUFFER_MODE mode)
     if (m_bufferMode == mode)
         return;
 
-    m_bufferMode = mode;
     PauseWorkers pauseWorkers(this);
 
-    m_threadMode = true;
-    if (m_bufferMode == BF_SINGLE) {
+    BUFFER_MODE oldmode = m_bufferMode;
+    m_bufferMode = mode;
+
+    if (mode == BF_SINGLE)
+    {
         m_threadMode = false;
+
+        for (auto& texObj : m_textures)
+        {
+            const CBuffer* src = texObj->GetWorker()->GetInternalBuffer();
+            CBuffer* dest = texObj->GetBuffer();
+            dest->InitIntermediateBuffer(src->GetIntermediateBuffer(),
+                                         src->GetSize());
+        }
+    }
+    else {
+        m_threadMode = true;
+
+        if (oldmode == BF_SINGLE)
+        {
+            for (auto& texObj : m_textures)
+            {
+                const CBuffer* src = texObj->GetBuffer();
+                CBuffer* dest = texObj->GetWorker()->GetInternalBuffer();
+                dest->InitIntermediateBuffer(src->GetIntermediateBuffer(),
+                                             src->GetSize());
+            }
+        }
     }
 }
 
