@@ -29,6 +29,24 @@ CGLWidget::~CGLWidget()
     glDeleteTextures(1, &m_lookupTexture);
 }
 
+CGLWidget::PauseWorkers::PauseWorkers(CGLWidget* widget) : m_widget(widget)
+{
+    if (m_widget->m_threadMode) {
+        for (auto& worker : m_widget->m_threads) {
+            worker->Pause();
+        }
+    }
+}
+
+CGLWidget::PauseWorkers::~PauseWorkers()
+{
+    if (m_widget->m_threadMode) {
+        for (auto& worker : m_widget->m_threads) {
+            worker->Resume(true);
+        }
+    }
+}
+
 void CGLWidget::ChangeBufferMode(BUFFER_MODE mode)
 {
     if (m_bufferMode == mode)
@@ -122,25 +140,13 @@ void CGLWidget::resizeGL(const int width, const int height)
 {
     glViewport(0, 0, width, height);
 
-    if (m_threadMode) {
-        std::for_each(m_threads.begin(), m_threads.end(),
-            [](CWorker* t) {
-                t->Pause();
-            });
-    }
+    PauseWorkers pauseWorkers(this);
 
     std::for_each(m_textures.begin(), m_textures.end(),
         [this, width, height](CTextureObject* texObj) {
             texObj->Resize(width, height);
             CreateTexture(texObj);
         });
-
-    if (m_threadMode) {
-        std::for_each(m_threads.begin(), m_threads.end(),
-            [](CWorker* t) {
-                t->Resume(true);
-            });
-    }
 }
 
 void CGLWidget::CreateTexture(CTextureObject* texObj)
@@ -183,12 +189,7 @@ void CGLWidget::ProcessEventAfterPaint()
     if (! m_fireBufferModeChange)
         return;
 
-    if (m_threadMode) {
-        std::for_each(m_threads.begin(), m_threads.end(),
-            [](CWorker* t) {
-            t->Pause();
-        });
-    }
+    PauseWorkers pauseWorkers(this);
 
     if (m_fireBufferModeChange)
     {
@@ -201,13 +202,6 @@ void CGLWidget::ProcessEventAfterPaint()
             m_threadMode = true;
         }
         m_fireBufferModeChange = false;
-    }
-
-    if (m_threadMode) {
-        std::for_each(m_threads.begin(), m_threads.end(),
-            [](CWorker* t) {
-            t->Resume(true);
-        });
     }
 }
 

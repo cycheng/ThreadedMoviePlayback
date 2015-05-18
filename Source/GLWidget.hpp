@@ -26,6 +26,19 @@ public:
     enum BUFFER_MODE {
         BF_SINGLE = 1, BF_TRIPLE
     };
+
+    class PauseWorkers
+    {
+    public:
+        explicit PauseWorkers(CGLWidget* widget);
+        ~PauseWorkers();
+    private:
+        CGLWidget* m_widget;
+    };
+    friend PauseWorkers;
+
+public:
+
     explicit CGLWidget(QWidget* parent = nullptr, QGLWidget* shareWidget = nullptr);
     ~CGLWidget();
 
