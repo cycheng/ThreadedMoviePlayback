@@ -73,7 +73,7 @@ public:
     void run() override;
     void Pause();
     void Stop();
-    void Resume();
+    void Resume(bool restartCompute);
 
     const CBuffer* GetUpdatedBufferAndSignalWorker();
 
@@ -91,6 +91,7 @@ private:
 
     bool m_pause;
     bool m_stop;
+    bool m_restart;
     bool m_inPauseState;
     bool m_inSwapWaitState;
 
@@ -119,7 +120,7 @@ public:
     GLenum GetBufferFormat() const;
     GLint GetInternalFormat() const;
 
-private:
+protected:
     CWorker* m_worker;
     CSingleBuffer m_buffer;
     GLuint m_textureId;

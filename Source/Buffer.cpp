@@ -22,6 +22,18 @@ void CBuffer::CheckSize(size_t size)
     }
 }
 
+void CBuffer::InitIntermediateBufferWithZero()
+{
+    unsigned char* ptr = GetIntermediateBuffer();
+    memset(ptr, 0, GetSize());
+}
+
+void CBuffer::InitIntermediateBuffer(const unsigned char* data, size_t size)
+{
+    CheckSize(size);
+    memcpy(GetIntermediateBuffer(), data, size);
+}
+
 void CBuffer::SetTextureSize(int width, int height)
 {
     assert(m_pixelSize);
@@ -85,10 +97,9 @@ unsigned char* CSingleBuffer::GetStableBuffer() const
     return m_buffer.get();
 }
 
-void CSingleBuffer::InitResultBufferWithZero()
+unsigned char* CSingleBuffer::GetIntermediateBuffer() const
 {
-    unsigned char* ptr = m_buffer.get();
-    memset(ptr, 0, GetSize());
+    return m_buffer.get();
 }
 
 // -----------------------------------------------------------------------------
@@ -108,10 +119,15 @@ void CTripleBuffer::CreateResource(size_t newSize)
     }
 }
 
-void CTripleBuffer::InitResultBufferWithZero()
+void CTripleBuffer::InitIntermediateBufferWithZero()
 {
-    unsigned char* ptr = m_working.get();
-    memset(ptr, 0, GetSize());
+    CBuffer::InitIntermediateBufferWithZero();
+    m_workingCopyEmpty = false;
+}
+
+void CTripleBuffer::InitIntermediateBuffer(const unsigned char* data, size_t size)
+{
+    CBuffer::InitIntermediateBuffer(data, size);
     m_workingCopyEmpty = false;
 }
 
@@ -123,6 +139,11 @@ unsigned char* CTripleBuffer::GetWorkingBuffer() const
 unsigned char* CTripleBuffer::GetStableBuffer() const
 {
     return m_stable.get();
+}
+
+unsigned char* CTripleBuffer::GetIntermediateBuffer() const
+{
+    return m_workingCopy.get();
 }
 
 bool CTripleBuffer::CanWeSwapWorkingBuffer()

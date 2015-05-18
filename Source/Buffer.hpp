@@ -13,7 +13,10 @@ public:
 
     virtual unsigned char* GetWorkingBuffer() const = 0;
     virtual unsigned char* GetStableBuffer() const = 0;
-    virtual void InitResultBufferWithZero() = 0;
+    virtual unsigned char* GetIntermediateBuffer() const = 0;
+
+    virtual void InitIntermediateBufferWithZero();
+    virtual void InitIntermediateBuffer(const unsigned char* data, size_t size);
 
     void SetTextureSize(int width, int height);
     void SetPixelSize(int pixelSize);
@@ -40,8 +43,8 @@ class CSingleBuffer : public CBuffer
 public:
     unsigned char* GetWorkingBuffer() const override;
     unsigned char* GetStableBuffer() const override;
+    unsigned char* GetIntermediateBuffer() const override;
 
-    void InitResultBufferWithZero() override;
 private:
     void CreateResource(size_t newSize) override;
 
@@ -64,7 +67,10 @@ public:
 
     unsigned char* GetWorkingBuffer() const override;
     unsigned char* GetStableBuffer() const override;
-    void InitResultBufferWithZero() override;
+    unsigned char* GetIntermediateBuffer() const override;
+
+    void InitIntermediateBufferWithZero() override;
+    void InitIntermediateBuffer(const unsigned char* data, size_t size) override;
 
     bool CanWeSwapWorkingBuffer() override;
     bool CanWeSwapStableBuffer() override;

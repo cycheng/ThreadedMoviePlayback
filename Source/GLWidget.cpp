@@ -20,7 +20,7 @@ CGLWidget::~CGLWidget()
 {
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
-            t->Resume();
+            t->Resume(false);
             t->Stop();
         });
 
@@ -138,7 +138,7 @@ void CGLWidget::resizeGL(const int width, const int height)
     if (m_threadMode) {
         std::for_each(m_threads.begin(), m_threads.end(),
             [](CWorker* t) {
-                t->Resume();
+                t->Resume(true);
             });
     }
 }
@@ -206,7 +206,7 @@ void CGLWidget::ProcessEventAfterPaint()
     if (m_threadMode) {
         std::for_each(m_threads.begin(), m_threads.end(),
             [](CWorker* t) {
-            t->Resume();
+            t->Resume(true);
         });
     }
 }
@@ -264,7 +264,7 @@ void CGLWidget::paintGL()
     ProcessEventAfterPaint();
 }
 
-CWorker::CWorker() : m_pause(true), m_stop(false),
+CWorker::CWorker() : m_pause(true), m_stop(false), m_restart(false),
     m_inPauseState(false), m_inSwapWaitState(false),
     m_buffer(nullptr), m_texObj(nullptr)
 {
@@ -307,6 +307,12 @@ void CWorker::run()
                 m_inSwapWaitState = false;
             }
 
+            // Check if we need to drop this frame **BEFORE** we swap buffer.
+            if (m_restart) {
+                m_restart = false;
+                continue;
+            }
+
             m_buffer->SwapWorkingBuffer();
         }
     }
@@ -339,7 +345,7 @@ void CWorker::Pause()
     m_pauseSignal.wait(&m_mutex);
 }
 
-void CWorker::Resume()
+void CWorker::Resume(bool restartCompute)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -348,6 +354,7 @@ void CWorker::Resume()
         return;
     }
 
+    m_restart = restartCompute;
     if (m_inPauseState)
     {
         m_pause = false;
@@ -415,10 +422,10 @@ void CTextureObject::Resize(int width, int height)
 
     if (m_worker) {
         m_worker->GetInternalBuffer()->SetTextureSize(width, height);
-        m_worker->GetInternalBuffer()->InitResultBufferWithZero();
+        m_worker->GetInternalBuffer()->InitIntermediateBufferWithZero();
     }
     m_buffer.SetTextureSize(width, height);
-    m_buffer.InitResultBufferWithZero();
+    m_buffer.InitIntermediateBufferWithZero();
     // CreateTexture is called by external
 }
 
@@ -484,8 +491,19 @@ void CVideoTexture::DoUpdate(CBuffer* buffer)
 
 void CVideoTexture::Resize(int width, int height)
 {
+    if (m_buffer.GetWidth() == width && m_buffer.GetHeight() == height) {
+        return;
+    }
+
     CTextureObject::Resize(width, height);
     m_ffmpegPlayer->setOutputSize(width, height);
+
+    // decode one frame to initialize result buffer
+    Update();
+    if (m_worker) {
+        m_worker->GetInternalBuffer()->InitIntermediateBuffer(
+            m_buffer.GetWorkingBuffer(), m_buffer.GetSize());
+    }
 }
 
 bool CVideoTexture::ChangeVideo(const std::string& fileName)
