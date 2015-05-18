@@ -340,6 +340,9 @@ void CWorker::Pause()
         return;
     }
 
+    if (m_texObj)
+        m_texObj->StopUpdate();
+
     m_pause = true;
     m_pauseSignal.wait(&m_mutex);
 }
@@ -426,6 +429,10 @@ void CTextureObject::Resize(int width, int height)
     m_buffer.SetTextureSize(width, height);
     m_buffer.InitIntermediateBufferWithZero();
     // CreateTexture is called by external
+}
+
+void CTextureObject::StopUpdate()
+{
 }
 
 void CTextureObject::Update()
@@ -534,4 +541,9 @@ void CFractalTexture::DoUpdate(CBuffer* buffer)
 {
     m_fractal->GenerateFractal(buffer->GetWidth(), buffer->GetHeight(),
                                buffer->GetWorkingBuffer());
+}
+
+void CFractalTexture::StopUpdate()
+{
+    m_fractal->StopGenerate();
 }

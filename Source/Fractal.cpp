@@ -34,7 +34,7 @@ namespace
 
 }
 
-CFractal::CFractal(): m_seed(0.0f, 0.0f), m_animated(true)
+CFractal::CFractal(): m_seed(0.0f, 0.0f), m_animated(true), m_stop(false)
 {
 }
 
@@ -44,6 +44,10 @@ CFractal::~CFractal()
 
 bool CFractal::GenerateFractal(int width, int height, unsigned char* data)
 {
+    // Set a stop flag check point in each row. We try to check it
+    // each 200 point.
+    const int rowCheckPoint = (width > 200) ? 1 : (200 / width);
+
     if (m_animated)
     {
         float t = QTime::currentTime().msecsSinceStartOfDay() / 5000.0;
@@ -58,6 +62,12 @@ bool CFractal::GenerateFractal(int width, int height, unsigned char* data)
             int value = juliaSet<256>(i / static_cast<float>(width), j / static_cast<float>(height), m_seed.rx(), m_seed.ry());
             // TODO: *(static_cast<unsigned char*>(buffer) + i + j * width) = value;
             *(data + i + j * width) = value;
+        }
+
+        if (j % rowCheckPoint == 0 && m_stop)
+        {
+            m_stop = false;
+            break;
         }
     }
 
@@ -74,3 +84,7 @@ void CFractal::SetSeedPoint(QPointF seed)
     m_seed = seed;
 }
 
+void CFractal::StopGenerate()
+{
+    m_stop = true;
+}

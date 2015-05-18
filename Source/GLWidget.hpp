@@ -117,6 +117,7 @@ public:
 
     virtual void DoUpdate(CBuffer* buffer) = 0;
     virtual void Resize(int width, int height);
+    virtual void StopUpdate();
 
     void Update();
     void BindWorker(CWorker* worker);
@@ -155,6 +156,7 @@ class CFractalTexture: public CTextureObject
 public:
     CFractalTexture();
     void DoUpdate(CBuffer* buffer) override;
+    void StopUpdate() override;
 
 private:
     std::unique_ptr<CFractal> m_fractal;
