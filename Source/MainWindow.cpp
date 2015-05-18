@@ -19,6 +19,7 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
     connect(m_timer, SIGNAL(timeout()), m_ui.glwidget, SLOT(updateGL()));
     connect(m_ui.noThreading, SIGNAL(toggled(bool)), this, SLOT(UseSingleBuffer(bool)));
     connect(m_ui.tripleBuffer, SIGNAL(toggled(bool)), this, SLOT(UseTripleBuffer(bool)));
+    connect(m_ui.animate, SIGNAL(stateChanged(int)), m_ui.glwidget, SLOT(SetAnimated(int)));
 
     AllocConsole();
     freopen("CONOUT$", "w", stdout);

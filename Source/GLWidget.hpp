@@ -43,6 +43,9 @@ public:
 
     void ChangeBufferMode(BUFFER_MODE mode);
 
+public slots:
+    void SetAnimated(int state);
+
 protected:
     void initializeGL() override;
     void resizeGL(int width, int height) override;
@@ -157,6 +160,7 @@ public:
     CFractalTexture();
     void DoUpdate(CBuffer* buffer) override;
     void StopUpdate() override;
+    CFractal* GetFractal();
 
 private:
     std::unique_ptr<CFractal> m_fractal;

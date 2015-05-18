@@ -263,6 +263,14 @@ void CGLWidget::paintGL()
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
+void CGLWidget::SetAnimated(int state)
+{
+    if (state > 0)
+        m_fractalTex->GetFractal()->SetAnimated(true);
+    else
+        m_fractalTex->GetFractal()->SetAnimated(false);
+}
+
 CWorker::CWorker() : m_pause(true), m_stop(false), m_restart(false),
     m_inPauseState(false), m_inSwapWaitState(false),
     m_buffer(nullptr), m_texObj(nullptr)
@@ -546,4 +554,9 @@ void CFractalTexture::DoUpdate(CBuffer* buffer)
 void CFractalTexture::StopUpdate()
 {
     m_fractal->StopGenerate();
+}
+
+CFractal* CFractalTexture::GetFractal()
+{
+    return m_fractal.get();
 }
