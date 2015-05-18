@@ -11,8 +11,7 @@
 CGLWidget::CGLWidget(QWidget* parent, QGLWidget* shareWidget): QGLWidget(parent, shareWidget), m_fractalTexture(0),
                                                                m_ffmpegPlayerTexture(0), m_lookupTexture(0),
                                                                m_program(nullptr), m_vertexBuffer(nullptr),
-                                                               m_threadMode(false), m_fireBufferModeChange(false),
-                                                               m_bufferMode(BF_SINGLE)
+                                                               m_threadMode(false), m_bufferMode(BF_SINGLE)
 {
 }
 
@@ -53,7 +52,12 @@ void CGLWidget::ChangeBufferMode(BUFFER_MODE mode)
         return;
 
     m_bufferMode = mode;
-    m_fireBufferModeChange = true;
+    PauseWorkers pauseWorkers(this);
+
+    m_threadMode = true;
+    if (m_bufferMode == BF_SINGLE) {
+        m_threadMode = false;
+    }
 }
 
 void CGLWidget::initializeGL()
@@ -184,27 +188,6 @@ void CGLWidget::UpdateTexture(const CTextureObject* texObj, const CBuffer* buf)
                     texObj->GetBufferFormat(), GL_UNSIGNED_BYTE, data);
 }
 
-void CGLWidget::ProcessEventAfterPaint()
-{
-    if (! m_fireBufferModeChange)
-        return;
-
-    PauseWorkers pauseWorkers(this);
-
-    if (m_fireBufferModeChange)
-    {
-        if (m_bufferMode == BF_SINGLE)
-        {
-            m_threadMode = false;
-        }
-        else if (m_bufferMode == BF_TRIPLE)
-        {
-            m_threadMode = true;
-        }
-        m_fireBufferModeChange = false;
-    }
-}
-
 void CGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -254,8 +237,6 @@ void CGLWidget::paintGL()
     glVertexPointer(2, GL_FLOAT, 0, 0);
     glEnableClientState(GL_VERTEX_ARRAY);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    ProcessEventAfterPaint();
 }
 
 CWorker::CWorker() : m_pause(true), m_stop(false), m_restart(false),

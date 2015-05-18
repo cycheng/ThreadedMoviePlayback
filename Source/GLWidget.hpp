@@ -38,7 +38,6 @@ public:
     friend PauseWorkers;
 
 public:
-
     explicit CGLWidget(QWidget* parent = nullptr, QGLWidget* shareWidget = nullptr);
     ~CGLWidget();
 
@@ -52,7 +51,6 @@ protected:
 private:
     void CreateTexture(CTextureObject* texObj);
     void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
-    void ProcessEventAfterPaint();
 
     GLuint m_fractalTexture;
     GLuint m_ffmpegPlayerTexture;
@@ -71,7 +69,6 @@ private:
 
     BUFFER_MODE m_bufferMode;
     bool m_threadMode;
-    bool m_fireBufferModeChange;
 };
 
 /*
