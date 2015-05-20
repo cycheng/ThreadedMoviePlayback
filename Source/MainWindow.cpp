@@ -20,6 +20,10 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
     connect(m_ui.noThreading, SIGNAL(toggled(bool)), this, SLOT(UseSingleBuffer(bool)));
     connect(m_ui.tripleBuffer, SIGNAL(toggled(bool)), this, SLOT(UseTripleBuffer(bool)));
     connect(m_ui.animate, SIGNAL(stateChanged(int)), m_ui.glwidget, SLOT(SetAnimated(int)));
+    connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), m_ui.glwidget, SLOT(ChangeAlphaValue(int)));
+    connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), this, SLOT(UpdateTransparencyLabel(int)));
+
+    m_ui.alphaSlider->valueChanged(50);
 
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
@@ -60,3 +64,7 @@ void CMainWindow::UseSingleBuffer(bool checked)
         m_ui.glwidget->ChangeBufferMode(CGLWidget::BF_SINGLE);
 }
 
+void CMainWindow::UpdateTransparencyLabel(int value)
+{
+    m_ui.transparency->setText(QString("%1%").arg(value));
+}

@@ -21,6 +21,7 @@ private slots:
     void TimerUpdate();
     void UseTripleBuffer(bool checked);
     void UseSingleBuffer(bool checked);
+    void UpdateTransparencyLabel(int value);
 
 private:
     Ui::CMainWindowClass m_ui;

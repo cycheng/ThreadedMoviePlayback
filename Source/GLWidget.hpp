@@ -45,6 +45,7 @@ public:
 
 public slots:
     void SetAnimated(int state);
+    void ChangeAlphaValue(int alpha);
 
 protected:
     void initializeGL() override;
@@ -55,14 +56,14 @@ private:
     void CreateTexture(CTextureObject* texObj);
     void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
 
-    GLuint m_fractalTexture;
-    GLuint m_ffmpegPlayerTexture;
     GLuint m_lookupTexture;
     QOpenGLShaderProgram* m_program;
     QOpenGLBuffer* m_vertexBuffer;
 
     int m_fractalLoc;
     int m_ffmpegLoc;
+    int m_alphaLoc;
+    float m_alpha;
 
     std::unique_ptr<CVideoTexture> m_videoTex;
     std::unique_ptr<CFractalTexture> m_fractalTex;

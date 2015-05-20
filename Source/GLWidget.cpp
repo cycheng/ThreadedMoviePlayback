@@ -8,8 +8,9 @@
 #include "FFmpegPlayer.hpp"
 #include "Buffer.hpp"
 
-CGLWidget::CGLWidget(QWidget* parent, QGLWidget* shareWidget): QGLWidget(parent, shareWidget), m_fractalTexture(0),
-                                                               m_ffmpegPlayerTexture(0), m_lookupTexture(0),
+CGLWidget::CGLWidget(QWidget* parent, QGLWidget* shareWidget): QGLWidget(parent, shareWidget),
+                                                               m_lookupTexture(0),
+                                                               m_alpha(0.f),
                                                                m_program(nullptr), m_vertexBuffer(nullptr),
                                                                m_threadMode(false), m_bufferMode(BF_SINGLE)
 {
@@ -23,8 +24,6 @@ CGLWidget::~CGLWidget()
             t->Stop();
         });
 
-    glDeleteTextures(1, &m_fractalTexture);
-    glDeleteTextures(1, &m_ffmpegPlayerTexture);
     glDeleteTextures(1, &m_lookupTexture);
 }
 
@@ -118,11 +117,13 @@ void CGLWidget::initializeGL()
         "varying mediump vec2 texc;\n"
         "uniform sampler2D fractalTex;\n"
         "uniform sampler2D videoTex;\n"
+        "uniform float alpha;\n"
         "void main(void)\n"
         "{\n"
         "    vec4 fractColour = texture2D(fractalTex, texc);\n"
         "    vec4 videoColour = texture2D(videoTex, texc);\n"
-        "    gl_FragColor = fractColour.rrrr + videoColour;\n"
+        "    gl_FragColor = vec4(fractColour.rgb, 1.0) * (1.0 - alpha) +\n"
+        "                   videoColour * (alpha);\n"
         "}\n";
     fshader->compileSourceCode(fsrc);
 
@@ -136,6 +137,7 @@ void CGLWidget::initializeGL()
 
     m_fractalLoc = m_program->uniformLocation("fractalTex");
     m_ffmpegLoc = m_program->uniformLocation("videoTex");
+    m_alphaLoc = m_program->uniformLocation("alpha");
 
     m_threads.push_back(new CWorker);
     m_threads.push_back(new CWorker);
@@ -154,6 +156,9 @@ void CGLWidget::initializeGL()
     m_fractalTex.reset(new CFractalTexture);
     m_fractalTex->SetTextureFormat(GL_RED, GL_R8);
     m_fractalTex->BindWorker(m_threads[1]);
+
+    m_fractalTex->GetFractal()->SetAnimated(false);
+    m_fractalTex->GetFractal()->SetSeedPoint(QPointF(-0.372867, 0.602788));
 
     m_textures.push_back(m_videoTex.get());
     m_textures.push_back(m_fractalTex.get());
@@ -254,6 +259,8 @@ void CGLWidget::paintGL()
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, m_videoTex->GetTextureID());
     m_program->setUniformValue(m_ffmpegLoc, 1);
+
+    m_program->setUniformValue(m_alphaLoc, m_alpha);
 #endif
 
     m_vertexBuffer->bind();
@@ -269,6 +276,11 @@ void CGLWidget::SetAnimated(int state)
         m_fractalTex->GetFractal()->SetAnimated(true);
     else
         m_fractalTex->GetFractal()->SetAnimated(false);
+}
+
+void CGLWidget::ChangeAlphaValue(int alpha)
+{
+    m_alpha = (float)alpha / 100.0f;
 }
 
 CWorker::CWorker() : m_pause(true), m_stop(false), m_restart(false),
@@ -422,6 +434,7 @@ CTextureObject::CTextureObject() : m_worker(nullptr), m_textureId(0),
 
 CTextureObject::~CTextureObject()
 {
+    glDeleteTextures(1, &m_textureId);
 }
 
 void CTextureObject::Resize(int width, int height)
