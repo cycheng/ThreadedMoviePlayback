@@ -1,5 +1,11 @@
 <RCC>
     <qresource prefix="/CMainWindow">
         <file>Resources/lookup.png</file>
+        <file>FluidFX/shader/Advect.frag</file>
+        <file>FluidFX/shader/Buoyancy.frag</file>
+        <file>FluidFX/shader/ComputeDivergence.frag</file>
+        <file>FluidFX/shader/Jacobi.frag</file>
+        <file>FluidFX/shader/Splat.frag</file>
+        <file>FluidFX/shader/SubtractGradient.frag</file>
     </qresource>
 </RCC>
