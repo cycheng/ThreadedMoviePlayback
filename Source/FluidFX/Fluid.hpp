@@ -1,4 +1,7 @@
-#include "Pez.h"
+#ifndef FLUID_HPP
+#define FLUID_HPP
+
+#include <QOpenGLFunctions> // for QOpenGLFunctions definition
 
 typedef struct Surface_ {
     GLuint FboHandle;
@@ -17,11 +20,6 @@ typedef struct Vector2_ {
 } Vector2;
 
 #define CellSize (1.25f)
-#define ViewportWidth (PEZ_VIEWPORT_WIDTH)
-#define ViewportHeight (PEZ_VIEWPORT_HEIGHT)
-#define GridWidth (ViewportWidth / 2)
-#define GridHeight (ViewportHeight / 2)
-#define SplatRadius ((float) GridWidth / 8.0f)
 
 static const float AmbientTemperature = 0.0f;
 static const float ImpulseTemperature = 10.0f;
@@ -34,21 +32,31 @@ static const float GradientScale = 1.125f / CellSize;
 static const float TemperatureDissipation = 0.99f;
 static const float VelocityDissipation = 0.99f;
 static const float DensityDissipation = 0.9999f;
-static const Vector2 ImpulsePosition = { GridWidth / 2, - (int) SplatRadius / 2};
 
 static const int PositionSlot = 0;
 
-GLuint CreateQuad();
-GLuint CreateProgram(const char* vsKey, const char* gsKey, const char* fsKey);
+GLuint CreateProgram(QObject* parent, const char* fsKey);
 Surface CreateSurface(GLsizei width, GLsizei height, int numComponents);
 Slab CreateSlab(GLsizei width, GLsizei height, int numComponents);
-void CreateObstacles(Surface dest, int width, int height);
-void InitSlabOps();
+void CreateObstacles(Surface dest, int width, int height, GLuint program,
+                     QOpenGLBuffer* border, QOpenGLBuffer* circle);
+void InitSlabOps(QObject* parent);
 void SwapSurfaces(Slab* slab);
 void ClearSurface(Surface s, float value);
-void Advect(Surface velocity, Surface source, Surface obstacles, Surface dest, float dissipation);
+void Advect(Surface velocity, Surface source, Surface obstacles, Surface dest,
+            float dissipation, int gridWidth, int gridHeight);
 void Jacobi(Surface pressure, Surface divergence, Surface obstacles, Surface dest);
 void SubtractGradient(Surface velocity, Surface pressure, Surface obstacles, Surface dest);
 void ComputeDivergence(Surface velocity, Surface obstacles, Surface dest);
-void ApplyImpulse(Surface dest, Vector2 position, float value);
+void ApplyImpulse(Surface dest, Vector2 position, float value, float splatRadius);
 void ApplyBuoyancy(Surface velocity, Surface temperature, Surface density, Surface dest);
+
+void FluidInit(QObject* parent);
+void FluidResize(int width, int height);
+void FluidUpdate(unsigned int elapsedMicroseconds);
+void FluidRender(GLuint windowFbo, int width, int height);
+void FluidCheckCondition(bool success, const char* errorMsg);
+
+QOpenGLFunctions& GL();
+
+#endif  // FLUID_HPP

@@ -1,34 +1,32 @@
-#include "Fluid.h"
+#include "Stdafx.hpp"
+#include "Fluid.hpp"
 #include <math.h>
 
-void CreateObstacles(Surface dest, int width, int height)
+void CreateObstacles(Surface dest, int width, int height, GLuint program,
+                     QOpenGLBuffer* border, QOpenGLBuffer* circle)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, dest.FboHandle);
-    glViewport(0, 0, width, height);
-    glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, dest.FboHandle);
+    GL().glViewport(0, 0, width, height);
+    GL().glClearColor(0, 0, 0, 0);
+    GL().glClear(GL_COLOR_BUFFER_BIT);
 
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    GLuint program = CreateProgram("Fluid.Vertex", 0, "Fluid.Fill");
-    glUseProgram(program);
+    GL().glUseProgram(program);
 
     const int DrawBorder = 1;
     if (DrawBorder) {
         #define T 0.9999f
         float positions[] = { -T, -T, T, -T, T,  T, -T,  T, -T, -T };
         #undef T
-        GLuint vbo;
+
+        border->bind();
+
         GLsizeiptr size = sizeof(positions);
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, size, positions, GL_STATIC_DRAW);
+        border->allocate(positions, size);
+
+        glVertexPointer(2, GL_FLOAT, 0, 0);
+        glEnableClientState(GL_VERTEX_ARRAY);
         GLsizeiptr stride = 2 * sizeof(positions[0]);
-        glEnableVertexAttribArray(PositionSlot);
-        glVertexAttribPointer(PositionSlot, 2, GL_FLOAT, GL_FALSE, stride, 0);
-        glDrawArrays(GL_LINE_STRIP, 0, 5);
-        glDeleteBuffers(1, &vbo);
+        GL().glDrawArrays(GL_LINE_STRIP, 0, 5);
     }
 
     const int DrawCircle = 1;
@@ -50,20 +48,13 @@ void CreateObstacles(Surface dest, int width, int height)
             *pPositions++ = 0.25f * cos(theta) * height / width;
             *pPositions++ = 0.25f * sin(theta);
         }
-        GLuint vbo;
+        circle->bind();
+
         GLsizeiptr size = sizeof(positions);
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, size, positions, GL_STATIC_DRAW);
-        GLsizeiptr stride = 2 * sizeof(positions[0]);
-        glEnableVertexAttribArray(PositionSlot);
-        glVertexAttribPointer(PositionSlot, 2, GL_FLOAT, GL_FALSE, stride, 0);
-        glDrawArrays(GL_TRIANGLES, 0, slices * 3);
-        glDeleteBuffers(1, &vbo);
+        circle->allocate(positions, size);
+
+        glVertexPointer(2, GL_FLOAT, 0, 0);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        GL().glDrawArrays(GL_TRIANGLES, 0, slices * 3);
     }
-
-    // Cleanup
-    glDeleteProgram(program);
-    glDeleteVertexArrays(1, &vao);
-
 }

@@ -15,6 +15,7 @@ class CWorker;
 class CTextureObject;
 class CVideoTexture;
 class CFractalTexture;
+class CFluidFXTexture;
 
 class CGLWidget: public QGLWidget, protected QOpenGLFunctions
 {
@@ -40,6 +41,7 @@ public:
     ~CGLWidget();
 
     void ChangeBufferMode(BUFFER_MODE mode);
+    static QOpenGLFunctions* m_glProvider;
 
 public slots:
     void SetAnimated(int state);
@@ -65,12 +67,16 @@ private:
 
     std::unique_ptr<CVideoTexture> m_videoTex;
     std::unique_ptr<CFractalTexture> m_fractalTex;
+    std::unique_ptr<CFluidFXTexture> m_fluidTex;
 
     std::vector<CWorker*> m_threads;
     std::vector<CTextureObject*> m_textures;
 
     BUFFER_MODE m_bufferMode;
     bool m_threadMode;
+
+    friend CTextureObject;
+    friend CFluidFXTexture;
 };
 
 #endif // GLWIDGET_HPP

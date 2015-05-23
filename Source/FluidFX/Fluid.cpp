@@ -1,12 +1,46 @@
-#include "Fluid.h"
+#include "Stdafx.hpp"
+#include "Fluid.hpp"
+#include "../GLWidget.hpp"  // for GL()
 
 static GLuint QuadVao;
 static GLuint VisualizeProgram;
+static GLuint FillProgram;
 static Slab Velocity, Density, Pressure, Temperature;
 static Surface Divergence, Obstacles, HiresObstacles;
 
-const char* PezInitialize(int width, int height)
+static QOpenGLBuffer* BorderObstacleVbo, *CircleObstacleVbo;
+static QOpenGLBuffer* ForRenderBorderObstacleVbo, *ForRenderCircleObstacleVbo;
+
+// size parameters
+static int GridWidth, GridHeight;
+static Vector2 ImpulsePosition;
+static float SplatRadius;
+
+void FluidInit(QObject* parent)
 {
+    InitSlabOps(parent);
+    VisualizeProgram = CreateProgram(parent, "Visualize.frag");
+    FillProgram = CreateProgram(parent, "Fill.frag");
+
+    QOpenGLBuffer** vboArray[] = {
+        &BorderObstacleVbo, &CircleObstacleVbo,
+        &ForRenderBorderObstacleVbo, &ForRenderCircleObstacleVbo
+    };
+
+    for (QOpenGLBuffer** vbo : vboArray) {
+        (*vbo) = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+        (*vbo)->create();
+    }
+}
+
+void FluidResize(int width, int height)
+{
+    // update all size parameters
+    GridWidth = width / 2;
+    GridHeight = height / 2;
+    SplatRadius = ((float)GridWidth / 8.0f);
+    ImpulsePosition = { GridWidth / 2, -(int)SplatRadius / 2 };
+
     int w = GridWidth;
     int h = GridHeight;
     Velocity = CreateSlab(w, h, 2);
@@ -14,41 +48,38 @@ const char* PezInitialize(int width, int height)
     Pressure = CreateSlab(w, h, 1);
     Temperature = CreateSlab(w, h, 1);
     Divergence = CreateSurface(w, h, 3);
-    InitSlabOps();
-    VisualizeProgram = CreateProgram("Fluid.Vertex", 0, "Fluid.Visualize");
 
     Obstacles = CreateSurface(w, h, 3);
-    CreateObstacles(Obstacles, w, h);
+    CreateObstacles(Obstacles, w, h, FillProgram,
+                    BorderObstacleVbo, CircleObstacleVbo);
 
-    w = ViewportWidth * 2;
-    h = ViewportHeight * 2;
+    w = width * 2;
+    h = height * 2;
     HiresObstacles = CreateSurface(w, h, 1);
-    CreateObstacles(HiresObstacles, w, h);
+    CreateObstacles(HiresObstacles, w, h, FillProgram,
+                    ForRenderBorderObstacleVbo, ForRenderCircleObstacleVbo);
 
-    QuadVao = CreateQuad();
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     ClearSurface(Temperature.Ping, AmbientTemperature);
-    return "Fluid Demo";
 }
 
-void PezUpdate(unsigned int elapsedMicroseconds)
+void FluidUpdate(unsigned int elapsedMicroseconds)
 {
     glViewport(0, 0, GridWidth, GridHeight);
 
-    Advect(Velocity.Ping, Velocity.Ping, Obstacles, Velocity.Pong, VelocityDissipation);
+    Advect(Velocity.Ping, Velocity.Ping, Obstacles, Velocity.Pong, VelocityDissipation, GridWidth, GridHeight);
     SwapSurfaces(&Velocity);
 
-    Advect(Velocity.Ping, Temperature.Ping, Obstacles, Temperature.Pong, TemperatureDissipation);
+    Advect(Velocity.Ping, Temperature.Ping, Obstacles, Temperature.Pong, TemperatureDissipation, GridWidth, GridHeight);
     SwapSurfaces(&Temperature);
 
-    Advect(Velocity.Ping, Density.Ping, Obstacles, Density.Pong, DensityDissipation);
+    Advect(Velocity.Ping, Density.Ping, Obstacles, Density.Pong, DensityDissipation, GridWidth, GridHeight);
     SwapSurfaces(&Density);
 
     ApplyBuoyancy(Velocity.Ping, Temperature.Ping, Density.Ping, Velocity.Pong);
     SwapSurfaces(&Velocity);
 
-    ApplyImpulse(Temperature.Ping, ImpulsePosition, ImpulseTemperature);
-    ApplyImpulse(Density.Ping, ImpulsePosition, ImpulseDensity);
+    ApplyImpulse(Temperature.Ping, ImpulsePosition, ImpulseTemperature, SplatRadius);
+    ApplyImpulse(Density.Ping, ImpulsePosition, ImpulseDensity, SplatRadius);
 
     ComputeDivergence(Velocity.Ping, Obstacles, Divergence);
     ClearSurface(Pressure.Ping, 0);
@@ -62,35 +93,47 @@ void PezUpdate(unsigned int elapsedMicroseconds)
     SwapSurfaces(&Velocity);
 }
 
-void PezRender(GLuint windowFbo)
+void FluidRender(GLuint windowFbo, int width, int height)
 {
     // Bind visualization shader and set up blend state:
-    glUseProgram(VisualizeProgram);
-    GLint fillColor = glGetUniformLocation(VisualizeProgram, "FillColor");
-    GLint scale = glGetUniformLocation(VisualizeProgram, "Scale");
-    glEnable(GL_BLEND);
+    GL().glUseProgram(VisualizeProgram);
+    GLint fillColor = GL().glGetUniformLocation(VisualizeProgram, "FillColor");
+    GLint scale = GL().glGetUniformLocation(VisualizeProgram, "Scale");
+    GL().glEnable(GL_BLEND);
 
     // Set render target to the backbuffer:
-    glViewport(0, 0, ViewportWidth, ViewportHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GL().glViewport(0, 0, width, height);
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
+    ////GL().glClearColor(0, 0, 0, 1);
+    ////GL().glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw ink:
-    glBindTexture(GL_TEXTURE_2D, Density.Ping.TextureHandle);
-    glUniform3f(fillColor, 1, 1, 1);
-    glUniform2f(scale, 1.0f / ViewportWidth, 1.0f / ViewportHeight);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    GL().glBindTexture(GL_TEXTURE_2D, Density.Ping.TextureHandle);
+    GL().glUniform3f(fillColor, 1, 1, 1);
+    GL().glUniform2f(scale, 1.0f / width, 1.0f / height);
+    GL().glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     // Draw obstacles:
-    glBindTexture(GL_TEXTURE_2D, HiresObstacles.TextureHandle);
-    glUniform3f(fillColor, 0.125f, 0.4f, 0.75f);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    GL().glBindTexture(GL_TEXTURE_2D, HiresObstacles.TextureHandle);
+    GL().glUniform3f(fillColor, 0.125f, 0.4f, 0.75f);
+    GL().glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     // Disable blending:
-    glDisable(GL_BLEND);
+    GL().glDisable(GL_BLEND);
 }
 
 void PezHandleMouse(int x, int y, int action)
 {
+}
+
+QOpenGLFunctions& GL()
+{
+    return *CGLWidget::m_glProvider;
+}
+
+void FluidCheckCondition(bool success, const char* errorMsg)
+{
+    if (! success) {
+        throw std::runtime_error(errorMsg);
+    }
 }

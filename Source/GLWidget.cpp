@@ -3,9 +3,12 @@
 #include "FFmpegPlayer.hpp"
 #include "Fractal.hpp"
 #include "GLWidget.hpp"
+#include "FluidFX.hpp"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
+
+QOpenGLFunctions* CGLWidget::m_glProvider = nullptr;
 
 CGLWidget::CGLWidget(QWidget* parent, QGLWidget* shareWidget): QGLWidget(parent, shareWidget),
                                                                m_lookupTexture(0),
@@ -19,7 +22,7 @@ CGLWidget::~CGLWidget()
 {
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
-            t->Resume(false);
+            //t->Resume(false);
             t->Stop();
         });
 
@@ -89,7 +92,11 @@ void CGLWidget::initializeGL()
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glClearColor(0.0, 1.0, 0.0, 0.0);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     makeCurrent();
+
+    CGLWidget::m_glProvider = this;
+
     QImage image(":/CMainWindow/Resources/lookup.png");
     m_lookupTexture = bindTexture(image);
 
@@ -120,9 +127,12 @@ void CGLWidget::initializeGL()
         "void main(void)\n"
         "{\n"
         "    vec4 fractColour = texture2D(fractalTex, texc);\n"
+        "    float fractAlpha = fractColour.r * (1.0 - alpha);"
+        "\n"
         "    vec4 videoColour = texture2D(videoTex, texc);\n"
-        "    gl_FragColor = vec4(fractColour.rgb, 1.0) * (1.0 - alpha) +\n"
-        "                   videoColour * (alpha);\n"
+        "\n"
+        "    gl_FragColor = fractColour * fractAlpha +\n"
+        "                   videoColour * (1.0 - fractAlpha);\n"
         "}\n";
     fshader->compileSourceCode(fsrc);
 
@@ -140,6 +150,7 @@ void CGLWidget::initializeGL()
 
     m_threads.push_back(new CWorker);
     m_threads.push_back(new CWorker);
+    //m_threads.push_back(new CWorker);
 
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* w) {
@@ -159,8 +170,13 @@ void CGLWidget::initializeGL()
     m_fractalTex->GetFractal()->SetAnimated(false);
     m_fractalTex->GetFractal()->SetSeedPoint(QPointF(-0.372867, 0.602788));
 
+    m_fluidTex.reset(new CFluidFXTexture(this));
+    m_fluidTex->SetTextureFormat(GL_RED, GL_R8);
+    //m_fluidTex->BindWorker(m_threads[2]);
+
     m_textures.push_back(m_videoTex.get());
     m_textures.push_back(m_fractalTex.get());
+    //m_textures.push_back(m_fluidTex.get());
 
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
@@ -179,6 +195,7 @@ void CGLWidget::resizeGL(const int width, const int height)
             texObj->Resize(width, height);
             CreateTexture(texObj);
         });
+    m_fluidTex->Resize(width, height);
 }
 
 void CGLWidget::CreateTexture(CTextureObject* texObj)
@@ -219,6 +236,7 @@ void CGLWidget::UpdateTexture(const CTextureObject* texObj, const CBuffer* buf)
 void CGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
 
     const CBuffer* updatedBuf = nullptr;
     if (m_threadMode)
@@ -237,7 +255,10 @@ void CGLWidget::paintGL()
             UpdateTexture(texObj, texObj->GetBuffer());
         }
     }
+    m_fluidTex->Update();
 
+    glViewport(0, 0, width(), height());
+    m_program->bind();
 #if 0
     if ((m_fractalTexture == 0) || (m_ffmpegPlayerTexture == 0) || (m_lookupTexture == 0))
     {
@@ -261,12 +282,19 @@ void CGLWidget::paintGL()
 
     m_program->setUniformValue(m_alphaLoc, m_alpha);
 #endif
-
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_vertexBuffer->bind();
-    m_program->bind();
+
     glVertexPointer(2, GL_FLOAT, 0, 0);
     glEnableClientState(GL_VERTEX_ARRAY);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    m_fluidTex->Render();
 }
 
 void CGLWidget::SetAnimated(int state)
