@@ -1,3 +1,8 @@
+/*  Fluid Simulation Implementation comes from
+ *  Philip Rideout
+ *  http://prideout.net/blog/?p=58
+ */
+
 #include "Stdafx.hpp"
 #include "Fluid.hpp"
 #include "../GLWidget.hpp"
