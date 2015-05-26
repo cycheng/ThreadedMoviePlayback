@@ -131,11 +131,6 @@ void PezHandleMouse(int x, int y, int action)
 {
 }
 
-QOpenGLFunctions& GL()
-{
-    return *CGLWidget::m_glProvider;
-}
-
 void FluidCheckCondition(bool success, const char* errorMsg)
 {
     if (! success) {

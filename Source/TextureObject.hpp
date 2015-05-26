@@ -11,7 +11,7 @@ class CFFmpegPlayer;
 class CFractal;
 class CTextureObject;
 
-class CWorker : public QThread
+class CWorker: public QThread
 {
 public:
     CWorker();
@@ -76,7 +76,7 @@ protected:
     GLint m_internalFmt;
 };
 
-class CVideoTexture : public CTextureObject
+class CVideoTexture: public CTextureObject
 {
 public:
     void DoUpdate(CBuffer* buffer) override;
@@ -88,16 +88,15 @@ private:
     std::unique_ptr<CFFmpegPlayer> m_ffmpegPlayer;
 };
 
-class CFractalTexture : public CTextureObject
+#include "Fractal.hpp"
+class CFractalTexture: public CTextureObject, public CFractal
 {
 public:
     CFractalTexture();
     void DoUpdate(CBuffer* buffer) override;
     void StopUpdate() override;
-    CFractal* GetFractal();
-
-private:
-    std::unique_ptr<CFractal> m_fractal;
 };
+
+QOpenGLFunctions& GL();
 
 #endif  // TEXTUREOBJECT_HPP

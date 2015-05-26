@@ -278,21 +278,22 @@ bool CVideoTexture::ChangeVideo(const std::string& fileName)
 
 CFractalTexture::CFractalTexture()
 {
-    m_fractal.reset(new CFractal);
+    //m_fractal.reset(new CFractal);
 }
 
 void CFractalTexture::DoUpdate(CBuffer* buffer)
 {
-    m_fractal->GenerateFractal(buffer->GetWidth(), buffer->GetHeight(),
-        buffer->GetWorkingBuffer());
+    //m_fractal->
+    GenerateFractal(buffer->GetWidth(), buffer->GetHeight(),
+                    buffer->GetWorkingBuffer());
 }
 
 void CFractalTexture::StopUpdate()
 {
-    m_fractal->StopGenerate();
+    StopGenerate();
 }
 
-CFractal* CFractalTexture::GetFractal()
+/*CFractal* CFractalTexture::GetFractal()
 {
     return m_fractal.get();
-}
+}*/

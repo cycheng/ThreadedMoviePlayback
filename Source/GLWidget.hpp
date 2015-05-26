@@ -7,15 +7,10 @@
 #endif // Q_MOC_RUN
 #include <memory>
 
+#include "FluidFX.hpp"
+
 class QOpenGLBuffer;
 class QOpenGLShaderProgram;
-
-class CBuffer;
-class CWorker;
-class CTextureObject;
-class CVideoTexture;
-class CFractalTexture;
-class CFluidFXTexture;
 
 class CGLWidget: public QGLWidget, protected QOpenGLFunctions
 {
@@ -42,6 +37,8 @@ public:
 
     void ChangeBufferMode(BUFFER_MODE mode);
     static QOpenGLFunctions* m_glProvider;
+    void CreateTexture(CTextureObject* texObj);
+    void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
 
 public slots:
     void SetAnimated(int state);
@@ -53,30 +50,18 @@ protected:
     void paintGL() override;
 
 private:
-    void CreateTexture(CTextureObject* texObj);
-    void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
-
     GLuint m_lookupTexture;
-    QOpenGLShaderProgram* m_program;
     QOpenGLBuffer* m_vertexBuffer;
 
-    int m_fractalLoc;
-    int m_ffmpegLoc;
-    int m_alphaLoc;
-    float m_alpha;
+    CFractalFX m_fractalfx;
+    CFluidFX m_fluidfx;
 
-    std::unique_ptr<CVideoTexture> m_videoTex;
-    std::unique_ptr<CFractalTexture> m_fractalTex;
-    std::unique_ptr<CFluidFXTexture> m_fluidTex;
-
+    std::vector<CEffect*> m_effects;
     std::vector<CWorker*> m_threads;
-    std::vector<CTextureObject*> m_textures;
+    std::vector<CTextureObject*> m_threadTextures;
 
     BUFFER_MODE m_bufferMode;
     bool m_threadMode;
-
-    friend CTextureObject;
-    friend CFluidFXTexture;
 };
 
 #endif // GLWIDGET_HPP

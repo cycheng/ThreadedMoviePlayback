@@ -5,10 +5,8 @@
 
 #include "Stdafx.hpp"
 #include "Fluid.hpp"
-#include "../GLWidget.hpp"
 
 #include <QFile>
-#include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
 GLuint CreateProgram(QObject* parent, const char* fsKey)

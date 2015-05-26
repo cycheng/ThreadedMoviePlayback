@@ -4,15 +4,11 @@
 #include <QObject>
 #include <QPointF>
 
-class CBuffer;
-
-#define FRACTAL_ELEM_1_BYTE 1
-
 class CFractal
 {
 public:
     CFractal();
-    ~CFractal();
+    virtual ~CFractal();
 
     bool GenerateFractal(int width, int height, unsigned char* data);
     void SetAnimated(bool animated);
