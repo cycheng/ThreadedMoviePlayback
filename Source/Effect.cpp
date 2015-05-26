@@ -1,5 +1,5 @@
 #include "Stdafx.hpp"
-
+#include "Effect.hpp"
 #include "GLWidget.hpp"
 
 CEffect::CEffect(): m_glwidget(nullptr), m_enabled(true),
@@ -53,7 +53,6 @@ void CEffect::Render()
 // ----------------------------------------------------------------------------
 // Fractal Effect
 // ----------------------------------------------------------------------------
-#include "FluidFX.hpp"
 #include "Fractal.hpp"
 #include "FFmpegPlayer.hpp"
 
@@ -178,7 +177,6 @@ void CFractalFX::DoRender()
 // ----------------------------------------------------------------------------
 // FluidFX Effect
 // ----------------------------------------------------------------------------
-#include "FluidFX.hpp"
 #include "FluidFX/Fluid.hpp"
 
 /*  Fluid Simulation Implementation comes from

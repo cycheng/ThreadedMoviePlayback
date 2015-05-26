@@ -7,7 +7,7 @@
 #endif // Q_MOC_RUN
 #include <memory>
 
-#include "FluidFX.hpp"
+#include "Effect.hpp"
 
 class QOpenGLBuffer;
 class QOpenGLShaderProgram;

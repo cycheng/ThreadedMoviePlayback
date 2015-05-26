@@ -2,7 +2,6 @@
 #include "GLWidget.hpp"
 #include "FFmpegPlayer.hpp"     // CFFmpeg::initFFmpeg
 #include "Fractal.hpp"
-#include "FluidFX.hpp"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
