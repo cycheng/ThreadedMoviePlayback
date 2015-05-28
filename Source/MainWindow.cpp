@@ -19,6 +19,13 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
     connect(m_timer, SIGNAL(timeout()), m_ui.glwidget, SLOT(updateGL()));
     connect(m_ui.noThreading, SIGNAL(toggled(bool)), this, SLOT(UseSingleBuffer(bool)));
     connect(m_ui.tripleBuffer, SIGNAL(toggled(bool)), this, SLOT(UseTripleBuffer(bool)));
+
+    // Effect enable/disable signal
+    connect(m_ui.fractalEnabled, SIGNAL(toggled(bool)), this, SLOT(EnableFractalFX(bool)));
+    connect(m_ui.fluidEnabled, SIGNAL(toggled(bool)), this, SLOT(EnableFluidFX(bool)));
+    connect(m_ui.pageCurlEnabled, SIGNAL(toggled(bool)), this, SLOT(EnablePageCurlFX(bool)));
+
+    // Fractal effect signal
     connect(m_ui.animate, SIGNAL(stateChanged(int)), m_ui.glwidget, SLOT(SetAnimated(int)));
     connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), m_ui.glwidget, SLOT(ChangeAlphaValue(int)));
     connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), this, SLOT(UpdateTransparencyLabel(int)));
@@ -68,4 +75,29 @@ void CMainWindow::UseSingleBuffer(bool checked)
 void CMainWindow::UpdateTransparencyLabel(int value)
 {
     m_ui.transparency->setText(QString("%1%").arg(value));
+}
+
+void CMainWindow::EnableFractalFX(bool enabled)
+{
+    if (enabled)
+        m_ui.glwidget->EnableFX(CGLWidget::FX_FRACTAL);
+    else
+        m_ui.glwidget->DisableFX(CGLWidget::FX_FRACTAL);
+}
+
+void CMainWindow::EnableFluidFX(bool enabled)
+{
+    if (enabled)
+        m_ui.glwidget->EnableFX(CGLWidget::FX_FLUID);
+    else
+        m_ui.glwidget->DisableFX(CGLWidget::FX_FLUID);
+
+}
+
+void CMainWindow::EnablePageCurlFX(bool enabled)
+{
+    //if (enabled)
+    //    m_ui.glwidget->EnableFX(CGLWidget::FX_PAGE_CURL);
+    //else
+    //    m_ui.glwidget->DisableFX(CGLWidget::FX_PAGE_CURL);
 }

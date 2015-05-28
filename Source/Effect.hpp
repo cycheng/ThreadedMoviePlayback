@@ -30,12 +30,33 @@ protected:
 class CVideoTexture;
 class CFractalTexture;
 
-class CFractalFX : public CEffect
+class CMoviePlayback: public CEffect
+{
+public:
+    CMoviePlayback();
+    void InitEffect(QObject* parent) override;
+    void Enable() override;
+    void Disable() override;
+    void BindTexture(CVideoTexture* video);
+
+private:
+    void DoUpdate() override;
+    void DoRender() override;
+
+    CVideoTexture* m_videoTex;
+
+    /* uniform of fragment shader */
+    int m_ffmpegLoc;
+};
+
+class CFractalFX: public CEffect
 {
 public:
     CFractalFX();
     ~CFractalFX();
     void InitEffect(QObject* parent) override;
+    void Enable() override;
+    void Disable() override;
     void BindTexture(CVideoTexture* video, CFractalTexture* fractal);
     void SetAlpha(float alpha);
 

@@ -124,15 +124,20 @@ void CGLWidget::initializeGL()
     m_threadTextures.push_back(&m_fractalTex);
 
     // initialize effects
-    m_effects.push_back(&m_fractalfx);
-    m_effects.push_back(&m_fluidfx);
+    m_effects[FX_BASE] = &m_basefx;
+    m_effects[FX_FRACTAL] = &m_fractalfx;
+    m_effects[FX_FLUID] = &m_fluidfx;
+
+    m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex);
+    m_basefx.BindTexture(&m_videoTex);
 
     for (auto& fx: m_effects)
     {
         fx->InitEffect(this);
+        fx->Enable();
     }
+    m_basefx.Disable();
 
-    m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex);
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
             t->Pause();
@@ -153,7 +158,9 @@ void CGLWidget::resizeGL(const int width, const int height)
     }
 
     for (auto& fx : m_effects)
+    {
         fx->WindowResize(width, height);
+    }
 }
 
 void CGLWidget::paintGL()
@@ -164,25 +171,27 @@ void CGLWidget::paintGL()
     const CBuffer* updatedBuf = nullptr;
     if (m_threadMode)
     {
-        for (auto& texObj : m_threadTextures)
+        for (auto& texObj: m_threadTextures)
         {
             texObj->UpdateByWorker();
         }
     }
     else
     {
-        for (auto& texObj : m_threadTextures)
+        for (auto& texObj: m_threadTextures)
         {
             texObj->UpdateByMySelf();
         }
     }
 
     m_vertexBuffer->bind();
-    for (auto& fx : m_effects)
+    for (auto& fx: m_effects)
     {
         fx->Update();
         fx->Render();
     }
+
+    glDisable(GL_BLEND);
 }
 
 void CGLWidget::SetAnimated(int state)
@@ -196,6 +205,26 @@ void CGLWidget::SetAnimated(int state)
 void CGLWidget::ChangeAlphaValue(int alpha)
 {
     m_fractalfx.SetAlpha((float)alpha / 100.0f);
+}
+
+void CGLWidget::EnableFX(EFFECT id)
+{
+    m_effects[id]->Enable();
+
+    if (id == FX_FRACTAL)
+    {
+        m_basefx.Disable();
+    }
+}
+
+void CGLWidget::DisableFX(EFFECT id)
+{
+    m_effects[id]->Disable();
+
+    if (id == FX_FRACTAL)
+    {
+        m_basefx.Enable();
+    }
 }
 
 QOpenGLFunctions& GL()

@@ -18,7 +18,8 @@ class CGLWidget: public QGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    enum BUFFER_MODE {
+    enum BUFFER_MODE
+    {
         BF_SINGLE = 1, BF_TRIPLE
     };
 
@@ -32,6 +33,14 @@ public:
     };
     friend PauseWorkers;
 
+    enum EFFECT
+    {
+        FX_BASE = 0,
+        FX_FRACTAL,
+        FX_FLUID,
+        FX_TOTAL
+    };
+
 public:
     explicit CGLWidget(QWidget* parent = nullptr, QGLWidget* shareWidget = nullptr);
     ~CGLWidget();
@@ -42,6 +51,8 @@ public:
 public slots:
     void SetAnimated(int state);
     void ChangeAlphaValue(int alpha);
+    void EnableFX(EFFECT id);
+    void DisableFX(EFFECT id);
 
 protected:
     void initializeGL() override;
@@ -55,10 +66,11 @@ private:
     CVideoTexture m_videoTex;
     CFractalTexture m_fractalTex;
 
+    CMoviePlayback m_basefx;
     CFractalFX m_fractalfx;
     CFluidFX m_fluidfx;
 
-    std::vector<CEffect*> m_effects;
+    CEffect* m_effects[FX_TOTAL];
     std::vector<CWorker*> m_threads;
     std::vector<CTextureObject*> m_threadTextures;
 

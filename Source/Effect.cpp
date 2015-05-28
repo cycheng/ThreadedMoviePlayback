@@ -19,7 +19,9 @@ void CEffect::InitEffect(QObject* parent)
 bool CEffect::WindowResize(int width, int height)
 {
     if (m_width == width && m_height == height)
+    {
         return false;
+    }
 
     m_width = width;
     m_height = height;
@@ -38,16 +40,98 @@ void CEffect::Disable()
 
 void CEffect::Update()
 {
-    if (! m_enabled)
-        return;
-
-    DoUpdate();
+    if (m_enabled)
+        DoUpdate();
 }
 
 void CEffect::Render()
 {
     if (m_enabled)
         DoRender();
+}
+
+static const char *BASIC_VERTEX_SHADER =
+"attribute highp vec4 vertex;\n"
+"varying mediump vec2 texc;\n"
+"void main(void)\n"
+"{\n"
+"    gl_Position = vec4(vertex.xy, 0.0, 1.0);\n"
+"    texc.x = 0.5 * (1.0 + vertex.x);\n"
+"    texc.y = 0.5 * (1.0 - vertex.y);\n"
+"}\n";
+
+// ----------------------------------------------------------------------------
+// Base Effect: movie playback
+// ----------------------------------------------------------------------------
+CMoviePlayback::CMoviePlayback(): m_videoTex(nullptr), m_ffmpegLoc(-1)
+{
+}
+
+void CMoviePlayback::InitEffect(QObject* parent)
+{
+    CEffect::InitEffect(parent);
+
+    QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, parent);
+    vshader->compileSourceCode(BASIC_VERTEX_SHADER);
+
+    QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, parent);
+    const char *fsrc =
+        "varying mediump vec2 texc;\n"
+        "uniform sampler2D videoTex;\n"
+        "void main(void)\n"
+        "{\n"
+        "    gl_FragColor = texture2D(videoTex, texc);\n"
+        "}\n";
+    fshader->compileSourceCode(fsrc);
+
+    m_program.setParent(parent);
+    m_program.addShader(vshader);
+    m_program.addShader(fshader);
+    m_program.bindAttributeLocation("vertex", 0);
+    m_program.link();
+
+    m_ffmpegLoc = m_program.uniformLocation("videoTex");
+}
+
+void CMoviePlayback::Enable()
+{
+    CEffect::Enable();
+    m_videoTex->Enable();
+}
+
+void CMoviePlayback::Disable()
+{
+    CEffect::Disable();
+    m_videoTex->Disable();
+}
+
+void CMoviePlayback::BindTexture(CVideoTexture* video)
+{
+    m_videoTex = video;
+}
+
+void CMoviePlayback::DoUpdate()
+{
+    /* Video textures is updated by CGLWidget::paintGL */
+}
+
+void CMoviePlayback::DoRender()
+{
+    glViewport(0, 0, m_width, m_height);
+    m_program.bind();
+
+    GL().glActiveTexture(GL_TEXTURE0);
+    GL().glBindTexture(GL_TEXTURE_2D, m_videoTex->GetTextureID());
+    m_program.setUniformValue(m_ffmpegLoc, 0);
+
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    GL().glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    GL().glActiveTexture(GL_TEXTURE0);
+    GL().glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 // ----------------------------------------------------------------------------
@@ -71,16 +155,7 @@ void CFractalFX::InitEffect(QObject* parent)
     CEffect::InitEffect(parent);
 
     QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, parent);
-    const char *vsrc =
-        "attribute highp vec4 vertex;\n"
-        "varying mediump vec2 texc;\n"
-        "void main(void)\n"
-        "{\n"
-        "    gl_Position = vec4(vertex.xy, 0.0, 1.0);\n"
-        "    texc.x = 0.5 * (1.0 + vertex.x);\n"
-        "    texc.y = 0.5 * (1.0 - vertex.y);\n"
-        "}\n";
-    vshader->compileSourceCode(vsrc);
+    vshader->compileSourceCode(BASIC_VERTEX_SHADER);
 
     QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, parent);
     const char *fsrc =
@@ -91,7 +166,7 @@ void CFractalFX::InitEffect(QObject* parent)
         "void main(void)\n"
         "{\n"
         "    vec4 fractColour = texture2D(fractalTex, texc);\n"
-        "    float fractAlpha = fractColour.r * (1.0 - alpha);"
+        "    float fractAlpha = fractColour.r * (1.0 - alpha);\n"
         "\n"
         "    vec4 videoColour = texture2D(videoTex, texc);\n"
         "\n"
@@ -109,6 +184,20 @@ void CFractalFX::InitEffect(QObject* parent)
     m_fractalLoc = m_program.uniformLocation("fractalTex");
     m_ffmpegLoc = m_program.uniformLocation("videoTex");
     m_alphaLoc = m_program.uniformLocation("alpha");
+}
+
+void CFractalFX::Enable()
+{
+    CEffect::Enable();
+    m_videoTex->Enable();
+    m_fractalTex->Enable();
+}
+
+void CFractalFX::Disable()
+{
+    CEffect::Disable();
+    m_videoTex->Disable();
+    m_fractalTex->Disable();
 }
 
 void CFractalFX::BindTexture(CVideoTexture* video, CFractalTexture* fractal)
@@ -172,11 +261,11 @@ void CFluidFX::InitEffect(QObject* parent)
 
 bool CFluidFX::WindowResize(int width, int height)
 {
-    if (! CEffect::WindowResize(width, height))
-        return false;
-
     if (width > 500) width = 500;
     if (height > 500) height = 500;
+
+    if (! CEffect::WindowResize(width, height))
+        return false;
 
     m_width = width;
     m_height = height;

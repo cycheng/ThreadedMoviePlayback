@@ -22,6 +22,9 @@ private slots:
     void UseTripleBuffer(bool checked);
     void UseSingleBuffer(bool checked);
     void UpdateTransparencyLabel(int value);
+    void EnableFractalFX(bool enabled);
+    void EnableFluidFX(bool enabled);
+    void EnablePageCurlFX(bool enabled);
 
 private:
     Ui::CMainWindowClass m_ui;

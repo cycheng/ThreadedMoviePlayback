@@ -158,7 +158,8 @@ CBuffer* CWorker::GetInternalBuffer()
 }
 
 CTextureObject::CTextureObject(): m_worker(nullptr), m_textureId(0),
-                                  m_bufferFmt(0), m_internalFmt(0)
+                                  m_bufferFmt(0), m_internalFmt(0),
+                                  m_enableCount(0)
 {
 }
 
@@ -193,6 +194,11 @@ void CTextureObject::StopUpdate()
 
 void CTextureObject::UpdateByWorker()
 {
+    if (! m_enableCount)
+    {
+        return;
+    }
+
     assert(m_worker && "Internal Error! This texture object should bind a worker.");
 
     const CBuffer* updatedBuf = m_worker->GetUpdatedBufferAndSignalWorker();
@@ -201,6 +207,11 @@ void CTextureObject::UpdateByWorker()
 
 void CTextureObject::UpdateByMySelf()
 {
+    if (! m_enableCount)
+    {
+        return;
+    }
+
     DoUpdate(&m_buffer);
     UpdateTexture(&m_buffer);
 }
@@ -221,6 +232,17 @@ void CTextureObject::CopyWorkerDataToMe()
     const CBuffer* src = m_worker->GetInternalBuffer();
     CBuffer* dest = &m_buffer;
     dest->InitIntermediateBuffer(src->GetIntermediateBuffer(), src->GetSize());
+}
+
+void CTextureObject::Enable()
+{
+    m_enableCount++;
+}
+
+void CTextureObject::Disable()
+{
+    assert(m_enableCount > 0 && "Internal Error! Incorrect enable count.");
+    m_enableCount--;
 }
 
 void CTextureObject::SetTextureFormat(GLenum bufferFmt, GLint internalFmt)

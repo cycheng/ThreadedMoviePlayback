@@ -22,6 +22,9 @@ public:
     void CopyMyDataToWorker();
     void CopyWorkerDataToMe();
 
+    void Enable();
+    void Disable();
+
     void SetTextureFormat(GLenum bufferFmt, GLint internalFmt);
     CBuffer* GetBuffer();
     CWorker* GetWorker();
@@ -37,6 +40,7 @@ protected:
     GLuint m_textureId;
     GLenum m_bufferFmt;
     GLint m_internalFmt;
+    quint8 m_enableCount;
 
     friend class CWorker;
 };
