@@ -6,9 +6,9 @@
 #include <cassert>
 #include <iostream>
 
-CWorker::CWorker() : m_pause(true), m_stop(false), m_restart(false),
-m_inPauseState(false), m_inSwapWaitState(false),
-m_buffer(nullptr), m_texObj(nullptr)
+CWorker::CWorker(): m_pause(true), m_stop(false), m_restart(false),
+                    m_inPauseState(false), m_inSwapWaitState(false),
+                    m_buffer(nullptr), m_texObj(nullptr)
 {
 }
 
@@ -31,26 +31,30 @@ void CWorker::run()
         {
             QMutexLocker locker(&m_mutex);
 
-            if (m_pause) {
+            if (m_pause)
+            {
                 m_pauseSignal.wakeOne();
                 m_inPauseState = true;
                 m_runSignal.wait(&m_mutex);
                 m_inPauseState = false;
             }
 
-            if (m_stop) {
+            if (m_stop)
+            {
                 m_pauseSignal.wakeOne();
                 break;
             }
 
-            if (!m_buffer->CanWeSwapWorkingBuffer()) {
+            if (!m_buffer->CanWeSwapWorkingBuffer())
+            {
                 m_inSwapWaitState = true;
                 m_swapBufferSignal.wait(&m_mutex);
                 m_inSwapWaitState = false;
             }
 
             // Check if we need to drop this frame **BEFORE** we swap buffer.
-            if (m_restart) {
+            if (m_restart)
+            {
                 m_restart = false;
                 continue;
             }
@@ -119,11 +123,13 @@ void CWorker::Stop()
 
     m_stop = true;
 
-    if (m_inSwapWaitState) {
+    if (m_inSwapWaitState)
+    {
         m_swapBufferSignal.wakeOne();
     }
 
-    if (m_inPauseState) {
+    if (m_inPauseState)
+    {
         m_pause = false;
         m_runSignal.wakeOne();
     }
@@ -143,6 +149,7 @@ void CWorker::BindTextureObject(CTextureObject* texObj)
 {
     m_texObj = texObj;
     m_buffer->SetPixelSize(texObj->GetBuffer()->GetPixelSize());
+    texObj->m_worker = this;
 }
 
 CBuffer* CWorker::GetInternalBuffer()
@@ -150,44 +157,70 @@ CBuffer* CWorker::GetInternalBuffer()
     return m_buffer.get();
 }
 
-CTextureObject::CTextureObject() : m_worker(nullptr), m_textureId(0),
-m_bufferFmt(0), m_internalFmt(0)
+CTextureObject::CTextureObject(): m_worker(nullptr), m_textureId(0),
+                                  m_bufferFmt(0), m_internalFmt(0)
 {
 }
 
 CTextureObject::~CTextureObject()
 {
-    glDeleteTextures(1, &m_textureId);
+    GL().glDeleteTextures(1, &m_textureId);
 }
 
-void CTextureObject::Resize(int width, int height)
+bool CTextureObject::Resize(int width, int height)
 {
-    if (m_buffer.GetWidth() == width && m_buffer.GetHeight() == height) {
-        return;
+    if (m_buffer.GetWidth() == width && m_buffer.GetHeight() == height)
+    {
+        return false;
     }
 
-    if (m_worker) {
-        m_worker->GetInternalBuffer()->SetTextureSize(width, height);
-        m_worker->GetInternalBuffer()->InitIntermediateBufferWithZero();
+    if (m_worker)
+    {
+        CBuffer* buf = m_worker->GetInternalBuffer();
+        buf->SetTextureSize(width, height);
+        buf->InitIntermediateBufferWithZero();
     }
     m_buffer.SetTextureSize(width, height);
     m_buffer.InitIntermediateBufferWithZero();
-    // CreateTexture is called by external
+    CreateTexture();
+
+    return true;
 }
 
 void CTextureObject::StopUpdate()
 {
 }
 
-void CTextureObject::Update()
+void CTextureObject::UpdateByWorker()
 {
-    DoUpdate(&m_buffer);
+    assert(m_worker && "Internal Error! This texture object should bind a worker.");
+
+    const CBuffer* updatedBuf = m_worker->GetUpdatedBufferAndSignalWorker();
+    UpdateTexture(updatedBuf);
 }
 
-void CTextureObject::BindWorker(CWorker* worker)
+void CTextureObject::UpdateByMySelf()
 {
-    worker->BindTextureObject(this);
-    m_worker = worker;
+    DoUpdate(&m_buffer);
+    UpdateTexture(&m_buffer);
+}
+
+void CTextureObject::CopyMyDataToWorker()
+{
+    assert(m_worker && "Internal Error! This texture object should bind a worker.");
+
+    const CBuffer* src = &m_buffer;
+    CBuffer* dest = m_worker->GetInternalBuffer();
+    dest->InitIntermediateBuffer(src->GetIntermediateBuffer(), src->GetSize());
+}
+
+void CTextureObject::CopyWorkerDataToMe()
+{
+    assert(m_worker && "Internal Error! This texture object should bind a worker.");
+
+    const CBuffer* src = m_worker->GetInternalBuffer();
+    CBuffer* dest = &m_buffer;
+    dest->InitIntermediateBuffer(src->GetIntermediateBuffer(), src->GetSize());
 }
 
 void CTextureObject::SetTextureFormat(GLenum bufferFmt, GLint internalFmt)
@@ -195,11 +228,6 @@ void CTextureObject::SetTextureFormat(GLenum bufferFmt, GLint internalFmt)
     m_bufferFmt = bufferFmt;
     m_internalFmt = internalFmt;
     m_buffer.SetPixelSize(GetGLPixelSize(bufferFmt));
-}
-
-void CTextureObject::SetNewTextureId(GLuint newGLId)
-{
-    m_textureId = newGLId;
 }
 
 CBuffer* CTextureObject::GetBuffer()
@@ -217,14 +245,34 @@ GLuint CTextureObject::GetTextureID() const
     return m_textureId;
 }
 
-GLenum CTextureObject::GetBufferFormat() const
+void CTextureObject::CreateTexture()
 {
-    return m_bufferFmt;
+    if (m_textureId != 0)
+    {
+        glDeleteTextures(1, &m_textureId);
+    }
+
+    GL().glGenTextures(1, &m_textureId);
+    GL().glBindTexture(GL_TEXTURE_2D, m_textureId);
+    GL().glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    GL().glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GL().glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+
+    GL().glTexImage2D(GL_TEXTURE_2D, 0, m_internalFmt,
+                      m_buffer.GetWidth(), m_buffer.GetHeight(),
+                      0, m_bufferFmt, GL_UNSIGNED_BYTE, nullptr);
 }
 
-GLint CTextureObject::GetInternalFormat() const
+void CTextureObject::UpdateTexture(const CBuffer* buf)
 {
-    return m_internalFmt;
+    void* data = buf->GetStableBuffer();
+
+    glBindTexture(GL_TEXTURE_2D, m_textureId);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, buf->GetWidth(), buf->GetHeight(),
+                    m_bufferFmt, GL_UNSIGNED_BYTE, data);
 }
 
 void CVideoTexture::DoUpdate(CBuffer* buffer)
@@ -232,28 +280,31 @@ void CVideoTexture::DoUpdate(CBuffer* buffer)
     unsigned int pts;
     bool newframe = false;
 
-    while (!newframe) {
-        newframe = m_ffmpegPlayer->decodeFrame(
-            pts,
-            buffer->GetWorkingBuffer(), buffer->GetRowSize());
+    while (! newframe)
+    {
+        newframe = m_ffmpegPlayer->decodeFrame(pts,
+                                               buffer->GetWorkingBuffer(),
+                                               buffer->GetRowSize());
     }
 }
 
-void CVideoTexture::Resize(int width, int height)
+bool CVideoTexture::Resize(int width, int height)
 {
-    if (m_buffer.GetWidth() == width && m_buffer.GetHeight() == height) {
-        return;
+    if (! CTextureObject::Resize(width, height))
+    {
+        return false;
     }
 
-    CTextureObject::Resize(width, height);
     m_ffmpegPlayer->setOutputSize(width, height);
 
     // decode one frame to initialize result buffer
-    Update();
-    if (m_worker) {
+    UpdateByMySelf();
+    if (m_worker)
+    {
         m_worker->GetInternalBuffer()->InitIntermediateBuffer(
             m_buffer.GetWorkingBuffer(), m_buffer.GetSize());
     }
+    return true;
 }
 
 bool CVideoTexture::ChangeVideo(const std::string& fileName)
@@ -278,12 +329,10 @@ bool CVideoTexture::ChangeVideo(const std::string& fileName)
 
 CFractalTexture::CFractalTexture()
 {
-    //m_fractal.reset(new CFractal);
 }
 
 void CFractalTexture::DoUpdate(CBuffer* buffer)
 {
-    //m_fractal->
     GenerateFractal(buffer->GetWidth(), buffer->GetHeight(),
                     buffer->GetWorkingBuffer());
 }

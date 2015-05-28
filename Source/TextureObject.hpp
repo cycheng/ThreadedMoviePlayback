@@ -7,10 +7,43 @@
 #include <QWaitCondition>
 #include <QOpenGLFunctions>
 
-class CFFmpegPlayer;
-class CFractal;
-class CTextureObject;
+class CWorker;
 
+class CTextureObject
+{
+public:
+    CTextureObject();
+    virtual ~CTextureObject();
+    virtual bool Resize(int width, int height);
+    virtual void StopUpdate();
+
+    void UpdateByWorker();
+    void UpdateByMySelf();
+    void CopyMyDataToWorker();
+    void CopyWorkerDataToMe();
+
+    void SetTextureFormat(GLenum bufferFmt, GLint internalFmt);
+    CBuffer* GetBuffer();
+    CWorker* GetWorker();
+    GLuint GetTextureID() const;
+
+protected:
+    virtual void DoUpdate(CBuffer* buffer) = 0;
+    void CreateTexture();
+    void UpdateTexture(const CBuffer* buf);
+
+    CWorker* m_worker;
+    CSingleBuffer m_buffer;
+    GLuint m_textureId;
+    GLenum m_bufferFmt;
+    GLint m_internalFmt;
+
+    friend class CWorker;
+};
+
+// ----------------------------------------------------------------------------
+// Worker thread for texture object update
+// ----------------------------------------------------------------------------
 class CWorker: public QThread
 {
 public:
@@ -31,7 +64,6 @@ public:
 
 private:
     QMutex m_mutex;
-
     QWaitCondition m_runSignal;
     QWaitCondition m_pauseSignal;
     QWaitCondition m_swapBufferSignal;
@@ -46,42 +78,17 @@ private:
     CTextureObject* m_texObj;
 };
 
-class CTextureObject
-{
-public:
-    CTextureObject();
-    virtual ~CTextureObject();
+// ----------------------------------------------------------------------------
+// Derived Texture Objects
+// ----------------------------------------------------------------------------
 
-    virtual void DoUpdate(CBuffer* buffer) = 0;
-    virtual void Resize(int width, int height);
-    virtual void StopUpdate();
-
-    void Update();
-    void BindWorker(CWorker* worker);
-    void SetTextureFormat(GLenum bufferFmt, GLint internalFmt);
-    void SetNewTextureId(GLuint newGLId);
-
-    CBuffer* GetBuffer();
-    CWorker* GetWorker();
-
-    GLuint GetTextureID() const;
-    GLenum GetBufferFormat() const;
-    GLint GetInternalFormat() const;
-
-protected:
-    CWorker* m_worker;
-    CSingleBuffer m_buffer;
-    GLuint m_textureId;
-    GLenum m_bufferFmt;
-    GLint m_internalFmt;
-};
+class CFFmpegPlayer;
 
 class CVideoTexture: public CTextureObject
 {
 public:
     void DoUpdate(CBuffer* buffer) override;
-    void Resize(int width, int height) override;
-
+    bool Resize(int width, int height) override;
     bool ChangeVideo(const std::string& fileName);
 
 private:

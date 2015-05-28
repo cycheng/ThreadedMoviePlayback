@@ -27,8 +27,10 @@ CGLWidget::~CGLWidget()
 
 CGLWidget::PauseWorkers::PauseWorkers(CGLWidget* widget) : m_widget(widget)
 {
-    if (m_widget->m_threadMode) {
-        for (auto& worker : m_widget->m_threads) {
+    if (m_widget->m_threadMode)
+    {
+        for (auto& worker : m_widget->m_threads)
+        {
             worker->Pause();
         }
     }
@@ -36,8 +38,10 @@ CGLWidget::PauseWorkers::PauseWorkers(CGLWidget* widget) : m_widget(widget)
 
 CGLWidget::PauseWorkers::~PauseWorkers()
 {
-    if (m_widget->m_threadMode) {
-        for (auto& worker : m_widget->m_threads) {
+    if (m_widget->m_threadMode)
+    {
+        for (auto& worker : m_widget->m_threads)
+        {
             worker->Resume(true);
         }
     }
@@ -59,23 +63,18 @@ void CGLWidget::ChangeBufferMode(BUFFER_MODE mode)
 
         for (auto& texObj : m_threadTextures)
         {
-            const CBuffer* src = texObj->GetWorker()->GetInternalBuffer();
-            CBuffer* dest = texObj->GetBuffer();
-            dest->InitIntermediateBuffer(src->GetIntermediateBuffer(),
-                                         src->GetSize());
+            texObj->CopyWorkerDataToMe();
         }
     }
-    else {
+    else
+    {
         m_threadMode = true;
 
         if (oldmode == BF_SINGLE)
         {
             for (auto& texObj : m_threadTextures)
             {
-                const CBuffer* src = texObj->GetBuffer();
-                CBuffer* dest = texObj->GetWorker()->GetInternalBuffer();
-                dest->InitIntermediateBuffer(src->GetIntermediateBuffer(),
-                                             src->GetSize());
+                texObj->CopyMyDataToWorker();
             }
         }
     }
@@ -111,21 +110,29 @@ void CGLWidget::initializeGL()
             w->start();
         });
 
+    // initialize texture objects
+    CFFmpegPlayer::initFFmpeg();
+    m_videoTex.ChangeVideo("../TestVideo/big_buck_bunny_480p_stereo.avi");
+    m_fractalTex.SetTextureFormat(GL_RED, GL_R8);
+    m_fractalTex.SetAnimated(false);
+    m_fractalTex.SetSeedPoint(QPointF(-0.372867, 0.602788));
+
+    // bind texture objects and worker
+    m_threads[0]->BindTextureObject(&m_videoTex);
+    m_threads[1]->BindTextureObject(&m_fractalTex);
+    m_threadTextures.push_back(&m_videoTex);
+    m_threadTextures.push_back(&m_fractalTex);
+
+    // initialize effects
     m_effects.push_back(&m_fractalfx);
     m_effects.push_back(&m_fluidfx);
 
     for (auto& fx: m_effects)
+    {
         fx->InitEffect(this);
+    }
 
-    CFFmpegPlayer::initFFmpeg();
-    m_fractalfx.GetVideoTexture()->ChangeVideo("../TestVideo/big_buck_bunny_480p_stereo.avi");
-    m_fractalfx.GetVideoTexture()->BindWorker(m_threads[0]);
-
-    m_fractalfx.GetFractalTexture()->BindWorker(m_threads[1]);
-
-    m_threadTextures.push_back(m_fractalfx.GetVideoTexture());
-    m_threadTextures.push_back(m_fractalfx.GetFractalTexture());
-
+    m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex);
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
             t->Pause();
@@ -135,54 +142,18 @@ void CGLWidget::initializeGL()
 void CGLWidget::resizeGL(const int width, const int height)
 {
     glViewport(0, 0, width, height);
+
     {
         PauseWorkers pauseWorkers(this);
 
         std::for_each(m_threadTextures.begin(), m_threadTextures.end(),
             [this, width, height](CTextureObject* texObj) {
-            texObj->Resize(width, height);
-            CreateTexture(texObj);
-        });
-
+                texObj->Resize(width, height);
+            });
     }
 
     for (auto& fx : m_effects)
         fx->WindowResize(width, height);
-}
-
-void CGLWidget::CreateTexture(CTextureObject* texObj)
-{
-    CBuffer* buf = texObj->GetBuffer();
-    GLuint textureId = texObj->GetTextureID();
-
-    if (textureId != 0)
-    {
-        glDeleteTextures(1, &textureId);
-    }
-
-    glGenTextures(1, &textureId);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, texObj->GetInternalFormat(),
-                 buf->GetWidth(), buf->GetHeight(),
-                 0, texObj->GetBufferFormat(), GL_UNSIGNED_BYTE, nullptr);
-
-    texObj->SetNewTextureId(textureId);
-}
-
-void CGLWidget::UpdateTexture(const CTextureObject* texObj, const CBuffer* buf)
-{
-    void* data = buf->GetStableBuffer();
-
-    glBindTexture(GL_TEXTURE_2D, texObj->GetTextureID());
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, buf->GetWidth(), buf->GetHeight(),
-                    texObj->GetBufferFormat(), GL_UNSIGNED_BYTE, data);
 }
 
 void CGLWidget::paintGL()
@@ -195,16 +166,14 @@ void CGLWidget::paintGL()
     {
         for (auto& texObj : m_threadTextures)
         {
-            const CBuffer* updatedBuf =
-                texObj->GetWorker()->GetUpdatedBufferAndSignalWorker();
-            UpdateTexture(texObj, updatedBuf);
+            texObj->UpdateByWorker();
         }
     }
-    else {
+    else
+    {
         for (auto& texObj : m_threadTextures)
         {
-            texObj->Update();
-            UpdateTexture(texObj, texObj->GetBuffer());
+            texObj->UpdateByMySelf();
         }
     }
 
@@ -219,9 +188,9 @@ void CGLWidget::paintGL()
 void CGLWidget::SetAnimated(int state)
 {
     if (state > 0)
-        m_fractalfx.GetFractalTexture()->SetAnimated(true);
+        m_fractalTex.SetAnimated(true);
     else
-        m_fractalfx.GetFractalTexture()->SetAnimated(false);
+        m_fractalTex.SetAnimated(false);
 }
 
 void CGLWidget::ChangeAlphaValue(int alpha)

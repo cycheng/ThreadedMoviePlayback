@@ -2,14 +2,13 @@
 #define FLUIDFX_HPP
 
 class QObject;
-class CGLWidget;
 
 class CEffect
 {
 public:
     CEffect();
     virtual ~CEffect();
-    virtual void InitEffect(CGLWidget* parent);
+    virtual void InitEffect(QObject* parent);
     virtual bool WindowResize(int width, int height);
 
     virtual void Enable();
@@ -22,24 +21,22 @@ protected:
     virtual void DoUpdate() = 0;
     virtual void DoRender() = 0;
 
-    CGLWidget* m_glwidget;
+    QObject* m_parent;
     bool m_enabled;
     QOpenGLShaderProgram m_program;
     int m_width, m_height;
 };
 
-#include "TextureObject.hpp"
+class CVideoTexture;
+class CFractalTexture;
 
 class CFractalFX : public CEffect
 {
 public:
     CFractalFX();
     ~CFractalFX();
-    void InitEffect(CGLWidget* parent) override;
-    bool WindowResize(int width, int height) override;
-
-    CVideoTexture* GetVideoTexture();
-    CFractalTexture* GetFractalTexture();
+    void InitEffect(QObject* parent) override;
+    void BindTexture(CVideoTexture* video, CFractalTexture* fractal);
     void SetAlpha(float alpha);
 
     enum RENDER_TARGET { RT_TEXTIRE = 1, RT_FRAMEBUFFER };
@@ -50,8 +47,8 @@ private:
     void DoUpdate() override;
     void DoRender() override;
 
-    CVideoTexture m_videoTex;
-    CFractalTexture m_fractalTex;
+    CVideoTexture* m_videoTex;
+    CFractalTexture* m_fractalTex;
 
     /* uniform of fragment shader */
     int m_fractalLoc;
@@ -63,7 +60,7 @@ private:
 class CFluidFX: public CEffect
 {
 public:
-    void InitEffect(CGLWidget* parent) override;
+    void InitEffect(QObject* parent) override;
     bool WindowResize(int width, int height) override;
 
 private:

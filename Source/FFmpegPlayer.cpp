@@ -94,13 +94,15 @@ void CFFmpegPlayer::setOutputSize(int width, int height) {
         return;
     m_outputWidth = width;
     m_outputHeight = height;
-    m_swsCtx = sws_getCachedContext(m_swsCtx, m_codecCtx->width, m_codecCtx->height,
+    m_swsCtx = sws_getCachedContext(
+        m_swsCtx, m_codecCtx->width, m_codecCtx->height,
         m_codecCtx->pix_fmt, width, height,
         AV_PIX_FMT_BGRA, SWS_POINT, nullptr, nullptr, nullptr);
     m_pixelSize = GetGLPixelSize(GL_BGRA);
 }
 
-int CFFmpegPlayer::getOutputSize() const {
+int CFFmpegPlayer::getOutputSize() const
+{
     return m_outputWidth * m_outputHeight * m_pixelSize;
 }
 

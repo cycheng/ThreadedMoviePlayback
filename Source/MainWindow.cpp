@@ -42,7 +42,8 @@ void CMainWindow::TimerUpdate()
 
     // update fps every 0.5 sec
     numFrame++;
-    if (currentTime - prevTime > 500) {
+    if (currentTime - prevTime > 500)
+    {
         float fps = (float)(currentTime - prevTime) / (float)numFrame;
         fps = 1000.f / fps;
         QString msg = "fps = " + QString::number(fps);

@@ -7,6 +7,7 @@
 #endif // Q_MOC_RUN
 #include <memory>
 
+#include "TextureObject.hpp"
 #include "Effect.hpp"
 
 class QOpenGLBuffer;
@@ -37,8 +38,6 @@ public:
 
     void ChangeBufferMode(BUFFER_MODE mode);
     static QOpenGLFunctions* m_glProvider;
-    void CreateTexture(CTextureObject* texObj);
-    void UpdateTexture(const CTextureObject* texObj, const CBuffer* buf);
 
 public slots:
     void SetAnimated(int state);
@@ -52,6 +51,9 @@ protected:
 private:
     GLuint m_lookupTexture;
     QOpenGLBuffer* m_vertexBuffer;
+
+    CVideoTexture m_videoTex;
+    CFractalTexture m_fractalTex;
 
     CFractalFX m_fractalfx;
     CFluidFX m_fluidfx;

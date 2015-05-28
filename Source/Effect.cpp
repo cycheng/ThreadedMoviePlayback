@@ -2,7 +2,7 @@
 #include "Effect.hpp"
 #include "GLWidget.hpp"
 
-CEffect::CEffect(): m_glwidget(nullptr), m_enabled(true),
+CEffect::CEffect(): m_parent(nullptr), m_enabled(true),
                     m_width(0), m_height(0)
 {
 }
@@ -11,9 +11,9 @@ CEffect::~CEffect()
 {
 }
 
-void CEffect::InitEffect(CGLWidget* parent)
+void CEffect::InitEffect(QObject* parent)
 {
-    m_glwidget = parent;
+    m_parent = parent;
 }
 
 bool CEffect::WindowResize(int width, int height)
@@ -57,7 +57,8 @@ void CEffect::Render()
 #include "FFmpegPlayer.hpp"
 
 CFractalFX::CFractalFX(): m_fractalLoc(-1), m_ffmpegLoc(-1), m_alphaLoc(-1),
-                          m_alpha(0.f)
+                          m_alpha(0.f),
+                          m_videoTex(nullptr), m_fractalTex(nullptr)
 {
 }
 
@@ -65,7 +66,7 @@ CFractalFX::~CFractalFX()
 {
 }
 
-void CFractalFX::InitEffect(CGLWidget* parent)
+void CFractalFX::InitEffect(QObject* parent)
 {
     CEffect::InitEffect(parent);
 
@@ -108,39 +109,18 @@ void CFractalFX::InitEffect(CGLWidget* parent)
     m_fractalLoc = m_program.uniformLocation("fractalTex");
     m_ffmpegLoc = m_program.uniformLocation("videoTex");
     m_alphaLoc = m_program.uniformLocation("alpha");
-
-    m_fractalTex.SetTextureFormat(GL_RED, GL_R8);
-    m_fractalTex.SetAnimated(false);
-    m_fractalTex.SetSeedPoint(QPointF(-0.372867, 0.602788));
 }
 
-bool CFractalFX::WindowResize(int width, int height)
+void CFractalFX::BindTexture(CVideoTexture* video, CFractalTexture* fractal)
 {
-    if (! CEffect::WindowResize(width, height))
-        return false;
-
-    m_videoTex.Resize(width, height);
-    m_glwidget->CreateTexture(&m_videoTex);
-    m_fractalTex.Resize(width, height);
-    m_glwidget->CreateTexture(&m_fractalTex);
-    return true;
-}
-
-CVideoTexture* CFractalFX::GetVideoTexture()
-{
-    return &m_videoTex;
-}
-
-CFractalTexture* CFractalFX::GetFractalTexture()
-{
-    return &m_fractalTex;
+    m_videoTex = video;
+    m_fractalTex = fractal;
 }
 
 void CFractalFX::SetAlpha(float alpha)
 {
     m_alpha = alpha;
 }
-
 
 void CFractalFX::DoUpdate()
 {
@@ -153,11 +133,11 @@ void CFractalFX::DoRender()
     m_program.bind();
 
     GL().glActiveTexture(GL_TEXTURE0);
-    GL().glBindTexture(GL_TEXTURE_2D, m_fractalTex.GetTextureID());
+    GL().glBindTexture(GL_TEXTURE_2D, m_fractalTex->GetTextureID());
     m_program.setUniformValue(m_fractalLoc, 0);
 
     GL().glActiveTexture(GL_TEXTURE1);
-    GL().glBindTexture(GL_TEXTURE_2D, m_videoTex.GetTextureID());
+    GL().glBindTexture(GL_TEXTURE_2D, m_videoTex->GetTextureID());
     m_program.setUniformValue(m_ffmpegLoc, 1);
 
     m_program.setUniformValue(m_alphaLoc, m_alpha);
@@ -184,7 +164,7 @@ void CFractalFX::DoRender()
  *  http://prideout.net/blog/?p=58
  */
 
-void CFluidFX::InitEffect(CGLWidget* parent)
+void CFluidFX::InitEffect(QObject* parent)
 {
     CEffect::InitEffect(parent);
     FluidInit(parent);
