@@ -40,6 +40,17 @@ void FluidInit(QObject* parent)
 
 void FluidResize(int width, int height)
 {
+    if (GridWidth != 0)
+    {
+        DestroySlab(Velocity);
+        DestroySlab(Density);
+        DestroySlab(Pressure);
+        DestroySlab(Temperature);
+        DestroySurface(Divergence);
+        DestroySurface(Obstacles);
+        DestroySurface(HiresObstacles);
+    }
+
     // update all size parameters
     GridWidth = width / 2;
     GridHeight = height / 2;
@@ -48,6 +59,7 @@ void FluidResize(int width, int height)
 
     int w = GridWidth;
     int h = GridHeight;
+
     Velocity = CreateSlab(w, h, 2);
     Density = CreateSlab(w, h, 1);
     Pressure = CreateSlab(w, h, 1);
@@ -125,6 +137,24 @@ void FluidRender(GLuint windowFbo, int width, int height)
 
     // Disable blending:
     GL().glDisable(GL_BLEND);
+}
+
+void FluidUninit()
+{
+    if (GridWidth != 0)
+    {
+        DestroySlab(Velocity);
+        DestroySlab(Density);
+        DestroySlab(Pressure);
+        DestroySlab(Temperature);
+        DestroySurface(Divergence);
+        DestroySurface(Obstacles);
+        DestroySurface(HiresObstacles);
+    }
+    delete BorderObstacleVbo;
+    delete CircleObstacleVbo;
+    delete ForRenderBorderObstacleVbo;
+    delete ForRenderCircleObstacleVbo;
 }
 
 void PezHandleMouse(int x, int y, int action)

@@ -11,6 +11,7 @@
 typedef struct Surface_ {
     GLuint FboHandle;
     GLuint TextureHandle;
+    GLuint RenderBufferHandle;
     int NumComponents;
 } Surface;
 
@@ -43,6 +44,8 @@ static const int PositionSlot = 0;
 GLuint CreateProgram(QObject* parent, const char* fsKey);
 Surface CreateSurface(GLsizei width, GLsizei height, int numComponents);
 Slab CreateSlab(GLsizei width, GLsizei height, int numComponents);
+void DestroySlab(Slab slab);
+void DestroySurface(Surface surf);
 void CreateObstacles(Surface dest, int width, int height, GLuint program,
                      QOpenGLBuffer* border, QOpenGLBuffer* circle);
 void InitSlabOps(QObject* parent);
@@ -60,6 +63,7 @@ void FluidInit(QObject* parent);
 void FluidResize(int width, int height);
 void FluidUpdate(unsigned int elapsedMicroseconds);
 void FluidRender(GLuint windowFbo, int width, int height);
+void FluidUninit();
 void FluidCheckCondition(bool success, const char* errorMsg);
 
 QOpenGLFunctions& GL();

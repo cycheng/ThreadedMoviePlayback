@@ -57,11 +57,28 @@ Surface CreateSurface(GLsizei width, GLsizei height, int numComponents)
     FluidCheckCondition(GL_NO_ERROR == GL().glGetError(), "Unable to attach color buffer");
 
     FluidCheckCondition(GL_FRAMEBUFFER_COMPLETE == GL().glCheckFramebufferStatus(GL_FRAMEBUFFER), "Unable to create FBO.");
-    Surface surface = { fboHandle, textureHandle, numComponents };
+    Surface surface = { fboHandle, textureHandle, colorbuffer, numComponents };
 
     GL().glClearColor(0, 0, 0, 0);
     GL().glClear(GL_COLOR_BUFFER_BIT);
     GL().glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return surface;
+}
+
+void DestroySlab(Slab slab)
+{
+    GL().glDeleteFramebuffers(1, &slab.Ping.FboHandle);
+    GL().glDeleteFramebuffers(1, &slab.Pong.FboHandle);
+    GL().glDeleteTextures(1, &slab.Ping.TextureHandle);
+    GL().glDeleteTextures(1, &slab.Pong.TextureHandle);
+    GL().glDeleteRenderbuffers(1, &slab.Ping.RenderBufferHandle);
+    GL().glDeleteRenderbuffers(1, &slab.Pong.RenderBufferHandle);
+}
+
+void DestroySurface(Surface surf)
+{
+    GL().glDeleteFramebuffers(1, &surf.FboHandle);
+    GL().glDeleteTextures(1, &surf.TextureHandle);
+    GL().glDeleteRenderbuffers(1, &surf.RenderBufferHandle);
 }
