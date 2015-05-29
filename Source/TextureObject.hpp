@@ -17,8 +17,8 @@ public:
     virtual bool Resize(int width, int height);
     virtual void StopUpdate();
 
-    void UpdateByWorker();
-    void UpdateByMySelf();
+    void UpdateByWorker(int elapsedMs);
+    void UpdateByMySelf(int elapsedMs, bool forceUpdate = false);
     void CopyMyDataToWorker();
     void CopyWorkerDataToMe();
 
@@ -31,6 +31,7 @@ public:
     GLuint GetTextureID() const;
 
 protected:
+    bool Timeout(int elapsedMs);
     virtual void DoUpdate(CBuffer* buffer) = 0;
     void CreateTexture();
     void UpdateTexture(const CBuffer* buf);
@@ -41,6 +42,10 @@ protected:
     GLenum m_bufferFmt;
     GLint m_internalFmt;
     quint8 m_enableCount;
+
+    // framerate control:
+    float m_time;
+    float m_msPerFrame;  // ms per frame: update a frame every m_msPerFrame ms
 
     friend class CWorker;
 };

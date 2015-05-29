@@ -182,24 +182,24 @@ void CGLWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_BLEND);
 
+    int currentMs = QTime::currentTime().msecsSinceStartOfDay();
+    int elapsedMs = currentMs - m_timeStamp;
+
     const CBuffer* updatedBuf = nullptr;
     if (m_threadMode)
     {
         for (auto& texObj: m_threadTextures)
         {
-            texObj->UpdateByWorker();
+            texObj->UpdateByWorker(elapsedMs);
         }
     }
     else
     {
         for (auto& texObj: m_threadTextures)
         {
-            texObj->UpdateByMySelf();
+            texObj->UpdateByMySelf(elapsedMs);
         }
     }
-
-    int currentMs = QTime::currentTime().msecsSinceStartOfDay();
-    int elapsedMs = currentMs - m_timeStamp;
 
     m_vertexBuffer->bind();
     for (auto& fx: m_effects)

@@ -352,8 +352,12 @@ void CPageCurlFX::DoUpdate(int elapsedMs)
         return;
 
     // scroll a page every 2 second.
-    m_time += (float)elapsedMs / 2000.0f;
-    if (m_time > 1.0f)
+    const int msPerFrame = 2000;
+    if (elapsedMs > msPerFrame)
+        elapsedMs = msPerFrame;
+
+    m_time += (float)elapsedMs / (float)msPerFrame;
+    if (m_time >= 1.0f)
         m_time -= 1.0f;
 }
 

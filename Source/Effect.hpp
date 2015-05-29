@@ -47,6 +47,8 @@ private:
     void DoRender() override;
 
     CVideoTexture* m_videoTex;
+    // for control framerate
+    float m_time;
 
     /* uniform of fragment shader */
     int m_ffmpegLoc;
@@ -69,6 +71,8 @@ private:
 
     CVideoTexture* m_videoTex;
     CFractalTexture* m_fractalTex;
+    // for control framerate
+    float m_time;
 
     /* uniform of fragment shader */
     int m_fractalLoc;

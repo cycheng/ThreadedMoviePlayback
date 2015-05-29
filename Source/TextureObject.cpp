@@ -159,7 +159,8 @@ CBuffer* CWorker::GetInternalBuffer()
 
 CTextureObject::CTextureObject(): m_worker(nullptr), m_textureId(0),
                                   m_bufferFmt(0), m_internalFmt(0),
-                                  m_enableCount(0)
+                                  m_enableCount(0),
+                                  m_time(0), m_msPerFrame(0)
 {
 }
 
@@ -192,9 +193,9 @@ void CTextureObject::StopUpdate()
 {
 }
 
-void CTextureObject::UpdateByWorker()
+void CTextureObject::UpdateByWorker(int elapsedMs)
 {
-    if (! m_enableCount)
+    if (! m_enableCount || ! Timeout(elapsedMs))
     {
         return;
     }
@@ -205,12 +206,15 @@ void CTextureObject::UpdateByWorker()
     UpdateTexture(updatedBuf);
 }
 
-void CTextureObject::UpdateByMySelf()
+void CTextureObject::UpdateByMySelf(int elapsedMs, bool forceUpdate)
 {
-    if (! m_enableCount)
+    if (! forceUpdate && (!m_enableCount || !Timeout(elapsedMs)))
     {
         return;
     }
+
+    if (forceUpdate)
+        m_time = 0.f;
 
     DoUpdate(&m_buffer);
     UpdateTexture(&m_buffer);
@@ -267,6 +271,25 @@ GLuint CTextureObject::GetTextureID() const
     return m_textureId;
 }
 
+bool CTextureObject::Timeout(int elapsedMs)
+{
+    float elapsed = (float)elapsedMs;
+
+    if (elapsed > m_msPerFrame)
+    {
+        m_time = 0.f;
+        return true;
+    }
+
+    m_time += elapsed;
+    if (m_time > m_msPerFrame)
+    {
+        m_time -= m_msPerFrame;
+        return true;
+    }
+    return false;
+}
+
 void CTextureObject::CreateTexture()
 {
     if (m_textureId != 0)
@@ -320,7 +343,7 @@ bool CVideoTexture::Resize(int width, int height)
     m_ffmpegPlayer->setOutputSize(width, height);
 
     // decode one frame to initialize result buffer
-    UpdateByMySelf();
+    UpdateByMySelf(0, true);
     if (m_worker)
     {
         m_worker->GetInternalBuffer()->InitIntermediateBuffer(
@@ -338,6 +361,8 @@ bool CVideoTexture::ChangeVideo(const std::string& fileName)
         m_ffmpegPlayer = std::move(player);
         SetTextureFormat(GL_BGRA, GL_RGBA);
 
+        // assume framerate is 24 fps
+        m_msPerFrame = 1000.f / 24.f;
         return true;
     }
     catch (std::runtime_error &e) {
