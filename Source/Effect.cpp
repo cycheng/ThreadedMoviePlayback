@@ -3,7 +3,7 @@
 #include "GLWidget.hpp"
 
 CEffect::CEffect(): m_parent(nullptr), m_enabled(true),
-                    m_width(0), m_height(0)
+                    m_width(0), m_height(0), m_renderTarget(0)
 {
 }
 
@@ -22,7 +22,6 @@ bool CEffect::WindowResize(int width, int height)
     {
         return false;
     }
-
     m_width = width;
     m_height = height;
     return true;
@@ -50,15 +49,25 @@ void CEffect::Render()
         DoRender();
 }
 
+void CEffect::SetRenderTarget(GLuint rt)
+{
+    m_renderTarget = rt;
+}
+
+bool CEffect::IsEnabled() const
+{
+    return m_enabled;
+}
+
 static const char *BASIC_VERTEX_SHADER =
-"attribute highp vec4 vertex;\n"
-"varying mediump vec2 texc;\n"
-"void main(void)\n"
-"{\n"
-"    gl_Position = vec4(vertex.xy, 0.0, 1.0);\n"
-"    texc.x = 0.5 * (1.0 + vertex.x);\n"
-"    texc.y = 0.5 * (1.0 - vertex.y);\n"
-"}\n";
+    "attribute highp vec4 vertex;\n"
+    "varying mediump vec2 texc;\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_Position = vec4(vertex.xy, 0.0, 1.0);\n"
+    "    texc.x = 0.5 * (1.0 + vertex.x);\n"
+    "    texc.y = 0.5 * (1.0 - vertex.y);\n"
+    "}\n";
 
 // ----------------------------------------------------------------------------
 // Base Effect: movie playback
@@ -124,7 +133,7 @@ void CMoviePlayback::DoRender()
     GL().glBindTexture(GL_TEXTURE_2D, m_videoTex->GetTextureID());
     m_program.setUniformValue(m_ffmpegLoc, 0);
 
-    GL().glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, m_renderTarget);
 
     glVertexPointer(2, GL_FLOAT, 0, 0);
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -231,7 +240,7 @@ void CFractalFX::DoRender()
 
     m_program.setUniformValue(m_alphaLoc, m_alpha);
 
-    GL().glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, m_renderTarget);
 
     glVertexPointer(2, GL_FLOAT, 0, 0);
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -252,6 +261,11 @@ void CFractalFX::DoRender()
  *  Philip Rideout
  *  http://prideout.net/blog/?p=58
  */
+
+CFluidFX::~CFluidFX()
+{
+    FluidUninit();
+}
 
 void CFluidFX::InitEffect(QObject* parent)
 {

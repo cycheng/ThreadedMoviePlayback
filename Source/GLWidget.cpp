@@ -23,6 +23,7 @@ CGLWidget::~CGLWidget()
         });
 
     glDeleteTextures(1, &m_lookupTexture);
+    DestroyTextureRenderTarget();
 }
 
 CGLWidget::PauseWorkers::PauseWorkers(CGLWidget* widget) : m_widget(widget)
@@ -157,9 +158,15 @@ void CGLWidget::resizeGL(const int width, const int height)
             });
     }
 
+    DestroyTextureRenderTarget();
+    CreateTextureRenderTarget(width, height);
+
+    GLuint rt = 0;
+
     for (auto& fx : m_effects)
     {
         fx->WindowResize(width, height);
+        fx->SetRenderTarget(rt);
     }
 }
 
@@ -225,6 +232,62 @@ void CGLWidget::DisableFX(EFFECT id)
     {
         m_basefx.Enable();
     }
+}
+
+
+void CGLWidget::CreateTextureRenderTarget(int width, int height)
+{
+    GLuint fboHandle;
+    glGenFramebuffers(1, &fboHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboHandle);
+
+    GLuint textureHandle;
+    glGenTextures(1, &textureHandle);
+    glBindTexture(GL_TEXTURE_2D, textureHandle);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+        0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    if (GL_NO_ERROR != glGetError())
+    {
+        throw std::runtime_error("Unable to create normals texture");
+    }
+
+    GLuint colorbuffer;
+    glGenRenderbuffers(1, &colorbuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, colorbuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureHandle, 0);
+
+    if (GL_NO_ERROR != glGetError())
+    {
+        throw std::runtime_error("Unable to create normals texture");
+    }
+
+    if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
+    {
+        throw std::runtime_error("Unable to create FBO.");
+    }
+
+    m_fboId = fboHandle;
+    m_fboTextureId = textureHandle;
+    m_renderBufferId = colorbuffer;
+
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void CGLWidget::DestroyTextureRenderTarget()
+{
+    if (! m_fboId)
+        return;
+
+    glDeleteFramebuffers(1, &m_fboId);
+    glDeleteTextures(1, &m_fboTextureId);
+    glDeleteRenderbuffers(1, &m_renderBufferId);
 }
 
 QOpenGLFunctions& GL()

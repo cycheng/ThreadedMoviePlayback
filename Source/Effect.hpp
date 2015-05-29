@@ -1,5 +1,5 @@
-#ifndef FLUIDFX_HPP
-#define FLUIDFX_HPP
+#ifndef EFFECT_HPP
+#define EFFECT_HPP
 
 class QObject;
 
@@ -16,6 +16,8 @@ public:
 
     void Update();
     void Render();
+    void SetRenderTarget(GLuint rt);
+    bool IsEnabled() const;
 
 protected:
     virtual void DoUpdate() = 0;
@@ -25,6 +27,7 @@ protected:
     bool m_enabled;
     QOpenGLShaderProgram m_program;
     int m_width, m_height;
+    GLuint m_renderTarget;
 };
 
 class CVideoTexture;
@@ -60,10 +63,6 @@ public:
     void BindTexture(CVideoTexture* video, CFractalTexture* fractal);
     void SetAlpha(float alpha);
 
-    enum RENDER_TARGET { RT_TEXTIRE = 1, RT_FRAMEBUFFER };
-    void ChangeRenderTarget(RENDER_TARGET rt);
-    GLuint GetTextureTarget();
-
 private:
     void DoUpdate() override;
     void DoRender() override;
@@ -81,6 +80,7 @@ private:
 class CFluidFX: public CEffect
 {
 public:
+    virtual ~CFluidFX();
     void InitEffect(QObject* parent) override;
     bool WindowResize(int width, int height) override;
 
@@ -89,11 +89,10 @@ private:
     void DoRender() override;
 };
 
-/*
-class CPageCurlFX : public CEffect {
+class CPageCurlFX: public CEffect {
 public:
     void BindTextureTarget();
 };
-*/
 
-#endif // FLUIDFX_HPP
+
+#endif // EFFECT_HPP

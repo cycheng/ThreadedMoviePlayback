@@ -60,6 +60,9 @@ protected:
     void paintGL() override;
 
 private:
+    void CreateTextureRenderTarget(int width, int height);
+    void DestroyTextureRenderTarget();
+
     GLuint m_lookupTexture;
     QOpenGLBuffer* m_vertexBuffer;
 
@@ -76,6 +79,11 @@ private:
 
     BUFFER_MODE m_bufferMode;
     bool m_threadMode;
+
+    // For render to texture, shared in all Effects
+    GLuint m_fboId;
+    GLuint m_fboTextureId;
+    GLuint m_renderBufferId;
 };
 
 #endif // GLWIDGET_HPP
