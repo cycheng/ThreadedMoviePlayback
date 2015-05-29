@@ -91,7 +91,21 @@ private:
 
 class CPageCurlFX: public CEffect {
 public:
-    void BindTextureTarget();
+    void InitEffect(QObject* parent) override;
+    void SetInputTextureId(GLuint texid);
+
+private:
+    void DoUpdate() override;
+    void DoRender() override;
+
+    /** Location of shader attributes and uniforms */
+    int m_vertexLoc;
+    int m_sourceTexLoc;
+    int m_targetTexLoc;
+    int m_timeLoc;
+
+    // Previous effect's result
+    GLuint m_textureId;
 };
 
 

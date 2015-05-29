@@ -38,6 +38,7 @@ public:
         FX_BASE = 0,
         FX_FRACTAL,
         FX_FLUID,
+        FX_PAGECURL,
         FX_TOTAL
     };
 
@@ -72,6 +73,7 @@ private:
     CMoviePlayback m_basefx;
     CFractalFX m_fractalfx;
     CFluidFX m_fluidfx;
+    CPageCurlFX m_pagecurlfx;
 
     CEffect* m_effects[FX_TOTAL];
     std::vector<CWorker*> m_threads;

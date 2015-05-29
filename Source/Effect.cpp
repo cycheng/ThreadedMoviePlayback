@@ -295,6 +295,81 @@ void CFluidFX::DoUpdate()
 
 void CFluidFX::DoRender()
 {
-    FluidRender(0, m_width, m_height);
+    FluidRender(m_renderTarget, m_width, m_height);
+}
+
+// ----------------------------------------------------------------------------
+// Page-Curl Effect
+// ----------------------------------------------------------------------------
+void CPageCurlFX::InitEffect(QObject* parent)
+{
+    CEffect::InitEffect(parent);
+
+    QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, parent);
+    // Flip y coordinate for input texture (render to texture with framebuffer)
+    const char* vsrc =
+        "attribute highp vec4 vertex;\n"
+        "varying mediump vec2 texc;\n"
+        "void main(void)\n"
+        "{\n"
+        "    gl_Position = vec4(vertex.xy, 0.0, 1.0);\n"
+        "    texc.x = 0.5 * (1.0 + vertex.x);\n"
+        "    texc.y = 0.5 * (1.0 + vertex.y);\n"
+        "}\n";
+    vshader->compileSourceCode(vsrc);
+
+    QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, parent);
+    QFile frag(":/CMainWindow/page-curl.frag");
+    frag.open(QIODevice::ReadOnly | QIODevice::Text);
+    fshader->compileSourceCode(frag.readAll());
+
+    m_program.setParent(parent);
+    m_program.addShader(vshader);
+    m_program.addShader(fshader);
+    m_program.bindAttributeLocation("vertex", 0);
+    m_program.link();
+
+    m_vertexLoc = m_program.attributeLocation("vertex");
+    m_sourceTexLoc = m_program.uniformLocation("sourceTex");
+    m_targetTexLoc = m_program.uniformLocation("targetTex");
+    m_timeLoc = m_program.uniformLocation("time");
+}
+
+void CPageCurlFX::SetInputTextureId(GLuint texid)
+{
+    m_textureId = texid;
+}
+
+void CPageCurlFX::DoUpdate()
+{
+
+}
+
+void CPageCurlFX::DoRender()
+{
+    glViewport(0, 0, m_width, m_height);
+    m_program.bind();
+
+    GL().glActiveTexture(GL_TEXTURE0);
+    GL().glBindTexture(GL_TEXTURE_2D, m_textureId);
+    m_program.setUniformValue(m_sourceTexLoc, 0);
+
+    GL().glActiveTexture(GL_TEXTURE1);
+    GL().glBindTexture(GL_TEXTURE_2D, m_textureId);
+    m_program.setUniformValue(m_targetTexLoc, 1);
+
+    //m_program.setUniformValue(m_timeLoc, m_time);
+    m_program.setUniformValue(m_timeLoc, 0.5f);
+
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, m_renderTarget);
+
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    GL().glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    GL().glActiveTexture(GL_TEXTURE1);
+    GL().glBindTexture(GL_TEXTURE_2D, 0);
+    GL().glActiveTexture(GL_TEXTURE0);
+    GL().glBindTexture(GL_TEXTURE_2D, 0);
 }
 

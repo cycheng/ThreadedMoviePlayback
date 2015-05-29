@@ -128,6 +128,7 @@ void CGLWidget::initializeGL()
     m_effects[FX_BASE] = &m_basefx;
     m_effects[FX_FRACTAL] = &m_fractalfx;
     m_effects[FX_FLUID] = &m_fluidfx;
+    m_effects[FX_PAGECURL] = &m_pagecurlfx;
 
     m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex);
     m_basefx.BindTexture(&m_videoTex);
@@ -161,13 +162,16 @@ void CGLWidget::resizeGL(const int width, const int height)
     DestroyTextureRenderTarget();
     CreateTextureRenderTarget(width, height);
 
-    GLuint rt = 0;
+    GLuint rt = m_effects[FX_PAGECURL]->IsEnabled() ? m_fboId : 0;
 
     for (auto& fx : m_effects)
     {
         fx->WindowResize(width, height);
         fx->SetRenderTarget(rt);
     }
+
+    m_pagecurlfx.SetRenderTarget(0);
+    m_pagecurlfx.SetInputTextureId(m_fboTextureId);
 }
 
 void CGLWidget::paintGL()
@@ -218,9 +222,18 @@ void CGLWidget::EnableFX(EFFECT id)
 {
     m_effects[id]->Enable();
 
-    if (id == FX_FRACTAL)
+    switch (id)
     {
+    case FX_FRACTAL:
         m_basefx.Disable();
+        break;
+    case FX_PAGECURL:
+        for (auto& fx: m_effects)
+        {
+            fx->SetRenderTarget(m_fboId);
+        }
+        m_pagecurlfx.SetRenderTarget(0);
+        break;
     }
 }
 
@@ -228,12 +241,19 @@ void CGLWidget::DisableFX(EFFECT id)
 {
     m_effects[id]->Disable();
 
-    if (id == FX_FRACTAL)
+    switch (id)
     {
+    case FX_FRACTAL:
         m_basefx.Enable();
+        break;
+    case FX_PAGECURL:
+        for (auto& fx : m_effects)
+        {
+            fx->SetRenderTarget(0);
+        }
+        break;
     }
 }
-
 
 void CGLWidget::CreateTextureRenderTarget(int width, int height)
 {

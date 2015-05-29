@@ -10,5 +10,6 @@
         <file alias="Fluid.vert">FluidFX/shader/Fluid.vert</file>
         <file alias="Visualize.frag">FluidFX/shader/Visualize.frag</file>
         <file alias="Fill.frag">FluidFX/shader/Fill.frag</file>
+        <file alias="page-curl.frag">Resources/page-curl.frag</file>
     </qresource>
 </RCC>

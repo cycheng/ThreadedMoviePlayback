@@ -363,8 +363,3 @@ void CFractalTexture::StopUpdate()
 {
     StopGenerate();
 }
-
-/*CFractal* CFractalTexture::GetFractal()
-{
-    return m_fractal.get();
-}*/

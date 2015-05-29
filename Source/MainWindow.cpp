@@ -96,8 +96,8 @@ void CMainWindow::EnableFluidFX(bool enabled)
 
 void CMainWindow::EnablePageCurlFX(bool enabled)
 {
-    //if (enabled)
-    //    m_ui.glwidget->EnableFX(CGLWidget::FX_PAGE_CURL);
-    //else
-    //    m_ui.glwidget->DisableFX(CGLWidget::FX_PAGE_CURL);
+    if (enabled)
+        m_ui.glwidget->EnableFX(CGLWidget::FX_PAGECURL);
+    else
+        m_ui.glwidget->DisableFX(CGLWidget::FX_PAGECURL);
 }
