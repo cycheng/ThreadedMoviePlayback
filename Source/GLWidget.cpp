@@ -11,7 +11,8 @@ QOpenGLFunctions* CGLWidget::m_glProvider = nullptr;
 CGLWidget::CGLWidget(QWidget* parent, QGLWidget* shareWidget): QGLWidget(parent, shareWidget),
                                                                m_lookupTexture(0),
                                                                m_vertexBuffer(nullptr),
-                                                               m_threadMode(false), m_bufferMode(BF_SINGLE)
+                                                               m_threadMode(false), m_bufferMode(BF_SINGLE),
+                                                               m_timeStamp(0)
 {
 }
 
@@ -144,6 +145,8 @@ void CGLWidget::initializeGL()
         [](CWorker* t) {
             t->Pause();
         });
+
+    m_timeStamp = QTime::currentTime().msecsSinceStartOfDay();
 }
 
 void CGLWidget::resizeGL(const int width, const int height)
@@ -195,22 +198,28 @@ void CGLWidget::paintGL()
         }
     }
 
+    int currentMs = QTime::currentTime().msecsSinceStartOfDay();
+    int elapsedMs = currentMs - m_timeStamp;
+
     m_vertexBuffer->bind();
     for (auto& fx: m_effects)
     {
-        fx->Update();
+        fx->Update(elapsedMs);
         fx->Render();
     }
 
+    m_timeStamp = currentMs;
     glDisable(GL_BLEND);
 }
 
 void CGLWidget::SetAnimated(int state)
 {
-    if (state > 0)
-        m_fractalTex.SetAnimated(true);
-    else
-        m_fractalTex.SetAnimated(false);
+    m_fractalTex.SetAnimated(state > 0);
+}
+
+void CGLWidget::SetPageCurlAnimated(int state)
+{
+    m_pagecurlfx.SetAnimated(state > 0);
 }
 
 void CGLWidget::ChangeAlphaValue(int alpha)

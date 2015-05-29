@@ -51,6 +51,7 @@ public:
 
 public slots:
     void SetAnimated(int state);
+    void SetPageCurlAnimated(int state);
     void ChangeAlphaValue(int alpha);
     void EnableFX(EFFECT id);
     void DisableFX(EFFECT id);
@@ -86,6 +87,8 @@ private:
     GLuint m_fboId;
     GLuint m_fboTextureId;
     GLuint m_renderBufferId;
+
+    int m_timeStamp;
 };
 
 #endif // GLWIDGET_HPP

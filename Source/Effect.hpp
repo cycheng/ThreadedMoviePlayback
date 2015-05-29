@@ -14,13 +14,13 @@ public:
     virtual void Enable();
     virtual void Disable();
 
-    void Update();
+    void Update(int elapsedMs);
     void Render();
     void SetRenderTarget(GLuint rt);
     bool IsEnabled() const;
 
 protected:
-    virtual void DoUpdate() = 0;
+    virtual void DoUpdate(int elapsedMs) = 0;
     virtual void DoRender() = 0;
 
     QObject* m_parent;
@@ -43,7 +43,7 @@ public:
     void BindTexture(CVideoTexture* video);
 
 private:
-    void DoUpdate() override;
+    void DoUpdate(int elapsedMs) override;
     void DoRender() override;
 
     CVideoTexture* m_videoTex;
@@ -64,7 +64,7 @@ public:
     void SetAlpha(float alpha);
 
 private:
-    void DoUpdate() override;
+    void DoUpdate(int elapsedMs) override;
     void DoRender() override;
 
     CVideoTexture* m_videoTex;
@@ -85,18 +85,25 @@ public:
     bool WindowResize(int width, int height) override;
 
 private:
-    void DoUpdate() override;
+    void DoUpdate(int elapsedMs) override;
     void DoRender() override;
 };
 
 class CPageCurlFX: public CEffect {
 public:
+    CPageCurlFX();
+
     void InitEffect(QObject* parent) override;
     void SetInputTextureId(GLuint texid);
+    void SetAnimated(bool animated);
 
 private:
-    void DoUpdate() override;
+    void DoUpdate(int elapsedMs) override;
     void DoRender() override;
+
+    // control page curl rate
+    float m_time;
+    bool m_animated;
 
     /** Location of shader attributes and uniforms */
     int m_vertexLoc;

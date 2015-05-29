@@ -27,6 +27,7 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
 
     // Fractal effect signal
     connect(m_ui.animate, SIGNAL(stateChanged(int)), m_ui.glwidget, SLOT(SetAnimated(int)));
+    connect(m_ui.animatePageCurl, SIGNAL(stateChanged(int)), m_ui.glwidget, SLOT(SetPageCurlAnimated(int)));
     connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), m_ui.glwidget, SLOT(ChangeAlphaValue(int)));
     connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), this, SLOT(UpdateTransparencyLabel(int)));
 

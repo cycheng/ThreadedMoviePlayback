@@ -37,10 +37,10 @@ void CEffect::Disable()
     m_enabled = false;
 }
 
-void CEffect::Update()
+void CEffect::Update(int elapsedMs)
 {
     if (m_enabled)
-        DoUpdate();
+        DoUpdate(elapsedMs);
 }
 
 void CEffect::Render()
@@ -119,7 +119,7 @@ void CMoviePlayback::BindTexture(CVideoTexture* video)
     m_videoTex = video;
 }
 
-void CMoviePlayback::DoUpdate()
+void CMoviePlayback::DoUpdate(int elapsedMs)
 {
     /* Video textures is updated by CGLWidget::paintGL */
 }
@@ -220,7 +220,7 @@ void CFractalFX::SetAlpha(float alpha)
     m_alpha = alpha;
 }
 
-void CFractalFX::DoUpdate()
+void CFractalFX::DoUpdate(int elapsedMs)
 {
     /* Video and fractal textures are updated by CGLWidget::paintGL */
 }
@@ -288,7 +288,7 @@ bool CFluidFX::WindowResize(int width, int height)
     return true;
 }
 
-void CFluidFX::DoUpdate()
+void CFluidFX::DoUpdate(int elapsedMs)
 {
     FluidUpdate(0);
 }
@@ -301,6 +301,12 @@ void CFluidFX::DoRender()
 // ----------------------------------------------------------------------------
 // Page-Curl Effect
 // ----------------------------------------------------------------------------
+CPageCurlFX::CPageCurlFX(): m_time(0.f), m_animated(true),
+                            m_vertexLoc(-1), m_sourceTexLoc(-1),
+                            m_targetTexLoc(-1), m_timeLoc(-1)
+{
+}
+
 void CPageCurlFX::InitEffect(QObject* parent)
 {
     CEffect::InitEffect(parent);
@@ -340,9 +346,15 @@ void CPageCurlFX::SetInputTextureId(GLuint texid)
     m_textureId = texid;
 }
 
-void CPageCurlFX::DoUpdate()
+void CPageCurlFX::DoUpdate(int elapsedMs)
 {
+    if (! m_animated)
+        return;
 
+    // scroll a page every 2 second.
+    m_time += (float)elapsedMs / 2000.0f;
+    if (m_time > 1.0f)
+        m_time -= 1.0f;
 }
 
 void CPageCurlFX::DoRender()
@@ -358,8 +370,7 @@ void CPageCurlFX::DoRender()
     GL().glBindTexture(GL_TEXTURE_2D, m_textureId);
     m_program.setUniformValue(m_targetTexLoc, 1);
 
-    //m_program.setUniformValue(m_timeLoc, m_time);
-    m_program.setUniformValue(m_timeLoc, 0.5f);
+    m_program.setUniformValue(m_timeLoc, m_time);
 
     GL().glBindFramebuffer(GL_FRAMEBUFFER, m_renderTarget);
 
@@ -371,5 +382,10 @@ void CPageCurlFX::DoRender()
     GL().glBindTexture(GL_TEXTURE_2D, 0);
     GL().glActiveTexture(GL_TEXTURE0);
     GL().glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void CPageCurlFX::SetAnimated(bool animated)
+{
+    m_animated = animated;
 }
 
