@@ -12,6 +12,10 @@ CWorker::CWorker(): m_pause(true), m_stop(false), m_restart(false),
 {
 }
 
+CWorker::~CWorker()
+{
+}
+
 void CWorker::run()
 {
     {

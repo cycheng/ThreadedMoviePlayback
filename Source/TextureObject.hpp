@@ -57,6 +57,7 @@ class CWorker: public QThread
 {
 public:
     CWorker();
+    virtual ~CWorker();
 
     void run() override;
     // You can call Resume() or Stop() after Pause()
