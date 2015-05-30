@@ -62,7 +62,7 @@ public:
     void InitEffect(QObject* parent) override;
     void Enable() override;
     void Disable() override;
-    void BindTexture(CVideoTexture* video, CFractalTexture* fractal);
+    void BindTexture(CVideoTexture* video, CFractalTexture* fractal, GLuint lookupId);
     void SetAlpha(float alpha);
 
 private:
@@ -71,12 +71,14 @@ private:
 
     CVideoTexture* m_videoTex;
     CFractalTexture* m_fractalTex;
+    GLuint m_lookupTexId;
     // for control framerate
     float m_time;
 
     /* uniform of fragment shader */
     int m_fractalLoc;
     int m_ffmpegLoc;
+    int m_lookupLoc;
     int m_alphaLoc;
     float m_alpha;
 };

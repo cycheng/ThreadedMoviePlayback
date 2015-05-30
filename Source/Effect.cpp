@@ -150,8 +150,8 @@ void CMoviePlayback::DoRender()
 #include "FFmpegPlayer.hpp"
 
 CFractalFX::CFractalFX(): m_fractalLoc(-1), m_ffmpegLoc(-1), m_alphaLoc(-1),
-                          m_alpha(0.f),
-                          m_videoTex(nullptr), m_fractalTex(nullptr)
+                          m_lookupLoc(-1), m_alpha(0.f),
+                          m_videoTex(nullptr), m_fractalTex(nullptr), m_lookupTexId(0)
 {
 }
 
@@ -171,6 +171,7 @@ void CFractalFX::InitEffect(QObject* parent)
         "varying mediump vec2 texc;\n"
         "uniform sampler2D fractalTex;\n"
         "uniform sampler2D videoTex;\n"
+        "uniform sampler2D lookupTex;\n"
         "uniform float alpha;\n"
         "void main(void)\n"
         "{\n"
@@ -178,8 +179,9 @@ void CFractalFX::InitEffect(QObject* parent)
         "    float fractAlpha = fractColour.r * (1.0 - alpha);\n"
         "\n"
         "    vec4 videoColour = texture2D(videoTex, texc);\n"
+        "    vec4 lookupColour = texture2D(lookupTex, vec2(fractColour.x, 0.0));\n"
         "\n"
-        "    gl_FragColor = fractColour * fractAlpha +\n"
+        "    gl_FragColor = lookupColour * fractAlpha +\n"
         "                   videoColour * (1.0 - fractAlpha);\n"
         "}\n";
     fshader->compileSourceCode(fsrc);
@@ -192,6 +194,7 @@ void CFractalFX::InitEffect(QObject* parent)
 
     m_fractalLoc = m_program.uniformLocation("fractalTex");
     m_ffmpegLoc = m_program.uniformLocation("videoTex");
+    m_lookupLoc = m_program.uniformLocation("lookupTex");
     m_alphaLoc = m_program.uniformLocation("alpha");
 }
 
@@ -209,10 +212,11 @@ void CFractalFX::Disable()
     m_fractalTex->Disable();
 }
 
-void CFractalFX::BindTexture(CVideoTexture* video, CFractalTexture* fractal)
+void CFractalFX::BindTexture(CVideoTexture* video, CFractalTexture* fractal, GLuint lookup)
 {
     m_videoTex = video;
     m_fractalTex = fractal;
+    m_lookupTexId = lookup;
 }
 
 void CFractalFX::SetAlpha(float alpha)
@@ -237,6 +241,10 @@ void CFractalFX::DoRender()
     GL().glActiveTexture(GL_TEXTURE1);
     GL().glBindTexture(GL_TEXTURE_2D, m_videoTex->GetTextureID());
     m_program.setUniformValue(m_ffmpegLoc, 1);
+
+    GL().glActiveTexture(GL_TEXTURE2);
+    GL().glBindTexture(GL_TEXTURE_2D, m_lookupTexId);
+    m_program.setUniformValue(m_lookupLoc, 2);
 
     m_program.setUniformValue(m_alphaLoc, m_alpha);
 

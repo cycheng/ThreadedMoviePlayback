@@ -132,7 +132,7 @@ void CGLWidget::initializeGL()
     m_effects[FX_FLUID] = &m_fluidfx;
     m_effects[FX_PAGECURL] = &m_pagecurlfx;
 
-    m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex);
+    m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex, m_lookupTexture);
     m_basefx.BindTexture(&m_videoTex);
     m_fluidfx.SetSizeLimit(450, 450);
 
