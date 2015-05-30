@@ -5,7 +5,7 @@
 
 #include "Stdafx.hpp"
 #include "Fluid.hpp"
-#include "../GLWidget.hpp"  // for GL()
+#include <QOpenglBuffer>
 
 static GLuint QuadVao;
 static GLuint VisualizeProgram;
@@ -35,6 +35,7 @@ void FluidInit(QObject* parent)
     for (QOpenGLBuffer** vbo : vboArray) {
         (*vbo) = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
         (*vbo)->create();
+        (*vbo)->setUsagePattern(QOpenGLBuffer::DynamicDraw);
     }
 }
 
@@ -67,14 +68,14 @@ void FluidResize(int width, int height)
     Divergence = CreateSurface(w, h, 3);
 
     Obstacles = CreateSurface(w, h, 3);
-    CreateObstacles(Obstacles, w, h, FillProgram,
+    CreateObstacles(Obstacles, w, h, w/2, h/2, FillProgram,
                     BorderObstacleVbo, CircleObstacleVbo);
 
     w = width * 2;
     h = height * 2;
     HiresObstacles = CreateSurface(w, h, 1);
-    CreateObstacles(HiresObstacles, w, h, FillProgram,
-                    ForRenderBorderObstacleVbo, ForRenderCircleObstacleVbo);
+    CreateObstacles(HiresObstacles, w, h, w/2, h/2, FillProgram,
+                    nullptr, ForRenderCircleObstacleVbo);
 
     ClearSurface(Temperature.Ping, AmbientTemperature);
 }
@@ -121,8 +122,6 @@ void FluidRender(GLuint windowFbo, int width, int height)
     // Set render target to the backbuffer:
     GL().glViewport(0, 0, width, height);
     GL().glBindFramebuffer(GL_FRAMEBUFFER, windowFbo);
-    ////GL().glClearColor(0, 0, 0, 1);
-    ////GL().glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw ink:
     GL().glBindTexture(GL_TEXTURE_2D, Density.Ping.TextureHandle);
@@ -167,3 +166,27 @@ void FluidCheckCondition(bool success, const char* errorMsg)
         throw std::runtime_error(errorMsg);
     }
 }
+
+void FluidSetCirclePosition(int xpos, int ypos, int width, int height)
+{
+    int w = width / 2; // i.e. GridWidth;
+    int h = height / 2; // i.e. GridHeight;
+
+    ypos = height - ypos;
+    int x = xpos / 2;
+    int y = ypos / 2;
+    CreateObstacles(Obstacles, w, h, x, y, FillProgram,
+        nullptr, CircleObstacleVbo);
+
+    w = width * 2;
+    h = height * 2;
+    x = xpos * 2;
+    y = ypos * 2;
+    CreateObstacles(HiresObstacles, w, h, x, y, FillProgram,
+        nullptr, ForRenderCircleObstacleVbo);
+
+    // bind framebuffer back to zero, prevent obstacles framebuffer be cleared
+    // accidently
+    GL().glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+

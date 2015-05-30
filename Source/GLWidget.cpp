@@ -21,6 +21,7 @@ CGLWidget::~CGLWidget()
     std::for_each(m_threads.begin(), m_threads.end(),
         [](CWorker* t) {
             t->Stop();
+            delete t;
         });
 
     glDeleteTextures(1, &m_lookupTexture);
@@ -146,6 +147,10 @@ void CGLWidget::initializeGL()
             t->Pause();
         });
 
+    // Set to false, when we drag (move + press) mouse, qt then
+    // invoke "mouseMoveEvent()" for us
+    // http://stackoverflow.com/questions/18559791/mouse-events-in-qt
+    setMouseTracking(false);
     m_timeStamp = QTime::currentTime().msecsSinceStartOfDay();
 }
 
@@ -262,6 +267,11 @@ void CGLWidget::DisableFX(EFFECT id)
         }
         break;
     }
+}
+
+void CGLWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    m_fluidfx.SetMousePosition(event->pos().rx(), event->pos().ry());
 }
 
 void CGLWidget::CreateTextureRenderTarget(int width, int height)

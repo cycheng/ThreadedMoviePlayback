@@ -62,6 +62,8 @@ protected:
     void paintGL() override;
 
 private:
+    void mouseMoveEvent(QMouseEvent *event) override;
+
     void CreateTextureRenderTarget(int width, int height);
     void DestroyTextureRenderTarget();
 

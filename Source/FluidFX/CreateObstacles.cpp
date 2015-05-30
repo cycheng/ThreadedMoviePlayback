@@ -5,9 +5,11 @@
 
 #include "Stdafx.hpp"
 #include "Fluid.hpp"
+#include <QOpenGLBuffer>
 #include <math.h>
-
-void CreateObstacles(Surface dest, int width, int height, GLuint program,
+#include <iostream>
+void CreateObstacles(Surface dest, int width, int height,
+                     int xpos, int ypos, GLuint program,
                      QOpenGLBuffer* border, QOpenGLBuffer* circle)
 {
     GL().glBindFramebuffer(GL_FRAMEBUFFER, dest.FboHandle);
@@ -18,13 +20,12 @@ void CreateObstacles(Surface dest, int width, int height, GLuint program,
     GL().glUseProgram(program);
 
     const int DrawBorder = 1;
-    if (DrawBorder) {
+    if (DrawBorder && border) {
         #define T 0.9999f
         float positions[] = { -T, -T, T, -T, T,  T, -T,  T, -T, -T };
         #undef T
 
         border->bind();
-
         GLsizeiptr size = sizeof(positions);
         border->allocate(positions, size);
 
@@ -35,29 +36,30 @@ void CreateObstacles(Surface dest, int width, int height, GLuint program,
     }
 
     const int DrawCircle = 1;
-    if (DrawCircle) {
+    if (DrawCircle && circle) {
         const int slices = 64;
         float positions[slices*2*3];
         float twopi = 8*atan(1.0f);
         float theta = 0;
         float dtheta = twopi / (float) (slices - 1);
         float* pPositions = &positions[0];
-        for (int i = 0; i < slices; i++) {
-            *pPositions++ = 0;
-            *pPositions++ = 0;
+        float glXpos = (2.f * xpos) / (float)width - 1.f;
+        float glYpos = (2.f * ypos) / (float)height - 1.f;
 
-            *pPositions++ = 0.25f * cos(theta) * height / width;
-            *pPositions++ = 0.25f * sin(theta);
+        for (int i = 0; i < slices; i++) {
+            *pPositions++ = 0 + glXpos;
+            *pPositions++ = 0 + glYpos;
+
+            *pPositions++ = 0.25f * cos(theta) * height / width + glXpos;
+            *pPositions++ = 0.25f * sin(theta) + glYpos;
             theta += dtheta;
 
-            *pPositions++ = 0.25f * cos(theta) * height / width;
-            *pPositions++ = 0.25f * sin(theta);
+            *pPositions++ = 0.25f * cos(theta) * height / width + glXpos;
+            *pPositions++ = 0.25f * sin(theta) + glYpos;
         }
-        circle->bind();
-
         GLsizeiptr size = sizeof(positions);
+        circle->bind();
         circle->allocate(positions, size);
-
         glVertexPointer(2, GL_FLOAT, 0, 0);
         glEnableClientState(GL_VERTEX_ARRAY);
         GL().glDrawArrays(GL_TRIANGLES, 0, slices * 3);

@@ -87,6 +87,7 @@ public:
     virtual ~CFluidFX();
     void InitEffect(QObject* parent) override;
     bool WindowResize(int width, int height) override;
+    void SetMousePosition(int xpos, int ypos);
 
 private:
     void DoUpdate(int elapsedMs) override;

@@ -275,17 +275,25 @@ void CFluidFX::InitEffect(QObject* parent)
 
 bool CFluidFX::WindowResize(int width, int height)
 {
-    if (width > 500) width = 500;
-    if (height > 500) height = 500;
-
     if (! CEffect::WindowResize(width, height))
         return false;
 
     m_width = width;
     m_height = height;
+
+    if (width > 500 && height > 500)
+        return false;
+
+    if (width > 500) width = 500;
+    if (height > 500) height = 500;
     FluidResize(width, height);
 
     return true;
+}
+
+void CFluidFX::SetMousePosition(int xpos, int ypos)
+{
+    FluidSetCirclePosition(xpos, ypos, m_width, m_height);
 }
 
 void CFluidFX::DoUpdate(int elapsedMs)
