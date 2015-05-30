@@ -65,7 +65,7 @@ void FluidResize(int width, int height);
 void FluidObstacleResize(float xpos, float ypos, int width, int height,
     float xadjuster, float yadjuster);
 void FluidUpdate(unsigned int elapsedMicroseconds);
-void FluidRender(GLuint windowFbo, int width, int height);
+void FluidRender(GLuint windowFbo, int width, int height, bool blueObstacle);
 void FluidSetCirclePosition(float xpos, float ypos, int width, int height,
     float xadjuster, float yadjuster);
 void FluidUninit();

@@ -99,7 +99,7 @@ void FluidUpdate(unsigned int elapsedMicroseconds)
     SwapSurfaces(&Velocity);
 }
 
-void FluidRender(GLuint windowFbo, int width, int height)
+void FluidRender(GLuint windowFbo, int width, int height, bool blueObstacle)
 {
     // Bind visualization shader and set up blend state:
     GL().glUseProgram(VisualizeProgram);
@@ -119,7 +119,13 @@ void FluidRender(GLuint windowFbo, int width, int height)
 
     // Draw obstacles:
     GL().glBindTexture(GL_TEXTURE_2D, HiresObstacles.TextureHandle);
-    GL().glUniform3f(fillColor, 0.125f, 0.4f, 0.75f);
+    if (blueObstacle) {
+        GL().glUniform3f(fillColor, 0.125f, 0.4f, 0.75f);
+    }
+    else {
+        GL().glUniform3f(fillColor,1.f, 0.4f, 0.75f);
+    }
+
     GL().glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     // Disable blending:

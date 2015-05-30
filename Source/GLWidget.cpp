@@ -148,10 +148,7 @@ void CGLWidget::initializeGL()
             t->Pause();
         });
 
-    // Set to false, when we drag (move + press) mouse, qt then
-    // invoke "mouseMoveEvent()" for us
-    // http://stackoverflow.com/questions/18559791/mouse-events-in-qt
-    setMouseTracking(false);
+    setMouseTracking(true);
     m_timeStamp = QTime::currentTime().msecsSinceStartOfDay();
 }
 
@@ -272,7 +269,13 @@ void CGLWidget::DisableFX(EFFECT id)
 
 void CGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    m_fluidfx.SetMousePosition(event->pos().rx(), event->pos().ry());
+    int xpos = event->pos().rx();
+    int ypos = event->pos().ry();
+
+    m_fluidfx.ObstacleCollisionCheck(xpos, ypos);
+    if (event->buttons() & Qt::LeftButton) {
+        m_fluidfx.SetMousePosition(xpos, ypos);
+    }
 }
 
 void CGLWidget::CreateTextureRenderTarget(int width, int height)

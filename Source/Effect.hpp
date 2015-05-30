@@ -90,6 +90,7 @@ public:
     bool WindowResize(int width, int height) override;
     void SetMousePosition(int xpos, int ypos);
     void SetSizeLimit(int maxwidth, int maxheight);
+    void ObstacleCollisionCheck(int xpos, int ypos);
     float AdjustX() const;
     float AdjustY() const;
     int RealWidth() const;
@@ -103,6 +104,7 @@ private:
     int m_heightLimit;
     float m_mouseX;
     float m_mouseY;
+    bool m_mouseOnObstacle;
 };
 
 class CPageCurlFX: public CEffect {

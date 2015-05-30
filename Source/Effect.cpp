@@ -262,7 +262,8 @@ void CFractalFX::DoRender()
  *  http://prideout.net/blog/?p=58
  */
 
-CFluidFX::CFluidFX(): m_widthLimit(0), m_heightLimit(0), m_mouseX(0.5f), m_mouseY(0.5f)
+CFluidFX::CFluidFX(): m_widthLimit(0), m_heightLimit(0),
+                      m_mouseX(0.5f), m_mouseY(0.5f), m_mouseOnObstacle(false)
 {
 }
 
@@ -313,6 +314,23 @@ void CFluidFX::SetSizeLimit(int maxwidth, int maxheight)
     m_heightLimit = maxheight;
 }
 
+void CFluidFX::ObstacleCollisionCheck(int xpos, int ypos)
+{
+    float relx = (float)xpos / m_width;
+    float rely = (float)ypos / m_height;
+
+    float dx = m_mouseX - relx;
+    float dy = m_mouseY - rely;
+    // roughly distance check !
+    float collideDist = 0.01f * (AdjustX() * AdjustX() + AdjustY() * AdjustY());
+
+    m_mouseOnObstacle = false;
+    if (dx*dx + dy*dy <= collideDist)
+    {
+        m_mouseOnObstacle = true;
+    }
+}
+
 float CFluidFX::AdjustX() const
 {
     if (m_widthLimit < m_width)
@@ -348,7 +366,7 @@ void CFluidFX::DoUpdate(int elapsedMs)
 
 void CFluidFX::DoRender()
 {
-    FluidRender(m_renderTarget, m_width, m_height);
+    FluidRender(m_renderTarget, m_width, m_height, !m_mouseOnObstacle);
 }
 
 // ----------------------------------------------------------------------------
