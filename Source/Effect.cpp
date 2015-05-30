@@ -262,6 +262,10 @@ void CFractalFX::DoRender()
  *  http://prideout.net/blog/?p=58
  */
 
+CFluidFX::CFluidFX(): m_widthLimit(0), m_heightLimit(0), m_mouseX(0.5f), m_mouseY(0.5f)
+{
+}
+
 CFluidFX::~CFluidFX()
 {
     FluidUninit();
@@ -278,22 +282,63 @@ bool CFluidFX::WindowResize(int width, int height)
     if (! CEffect::WindowResize(width, height))
         return false;
 
-    m_width = width;
-    m_height = height;
+    if (width > m_widthLimit && height > m_heightLimit)
+    {
+        // re-create obstacle to maintain correct visual ratio, so
+        // the circle won't looks like ellipsoid, and put obstacle in
+        // correct position.
+        //
+        // So, don't return here, even though our real textures size
+        // are unchanged. Re-create all to avoid strange result.
+    }
 
-    if (width > 500 && height > 500)
-        return false;
-
-    if (width > 500) width = 500;
-    if (height > 500) height = 500;
-    FluidResize(width, height);
+    FluidResize(RealWidth(), RealHeight());
+    FluidObstacleResize(m_mouseX, m_mouseY, RealWidth(), RealHeight(), AdjustX(), AdjustY());
 
     return true;
 }
 
 void CFluidFX::SetMousePosition(int xpos, int ypos)
 {
-    FluidSetCirclePosition(xpos, ypos, m_width, m_height);
+    m_mouseX = (float)xpos / m_width;
+    m_mouseY = (float)ypos / m_height;
+
+    // Only need to update circle position
+    FluidSetCirclePosition(m_mouseX, m_mouseY, RealWidth(), RealHeight(), AdjustX(), AdjustY());
+}
+
+void CFluidFX::SetSizeLimit(int maxwidth, int maxheight)
+{
+    m_widthLimit = maxwidth;
+    m_heightLimit = maxheight;
+}
+
+float CFluidFX::AdjustX() const
+{
+    if (m_widthLimit < m_width)
+    {
+        return (float)m_widthLimit / m_width;
+    }
+    return 1.0f;
+}
+
+float CFluidFX::AdjustY() const
+{
+    if (m_heightLimit < m_height)
+    {
+        return (float)m_heightLimit / m_height;
+    }
+    return 1.0f;
+}
+
+int CFluidFX::RealWidth() const
+{
+    return std::min(m_width, m_widthLimit);
+}
+
+int CFluidFX::RealHeight() const
+{
+    return std::min(m_height, m_heightLimit);
 }
 
 void CFluidFX::DoUpdate(int elapsedMs)

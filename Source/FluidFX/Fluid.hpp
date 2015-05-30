@@ -46,7 +46,8 @@ Surface CreateSurface(GLsizei width, GLsizei height, int numComponents);
 Slab CreateSlab(GLsizei width, GLsizei height, int numComponents);
 void DestroySlab(Slab slab);
 void DestroySurface(Surface surf);
-void CreateObstacles(Surface dest, int width, int height, int xpos, int ypos,
+void CreateObstacles(Surface dest, int width, int height,
+                     float xadjuster, float yadjuster, float xpos, float ypos,
                      GLuint program, QOpenGLBuffer* border, QOpenGLBuffer* circle);
 void InitSlabOps(QObject* parent);
 void SwapSurfaces(Slab* slab);
@@ -61,9 +62,12 @@ void ApplyBuoyancy(Surface velocity, Surface temperature, Surface density, Surfa
 
 void FluidInit(QObject* parent);
 void FluidResize(int width, int height);
+void FluidObstacleResize(float xpos, float ypos, int width, int height,
+    float xadjuster, float yadjuster);
 void FluidUpdate(unsigned int elapsedMicroseconds);
 void FluidRender(GLuint windowFbo, int width, int height);
-void FluidSetCirclePosition(int xpos, int ypos, int width, int height);
+void FluidSetCirclePosition(float xpos, float ypos, int width, int height,
+    float xadjuster, float yadjuster);
 void FluidUninit();
 void FluidCheckCondition(bool success, const char* errorMsg);
 

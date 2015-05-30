@@ -84,14 +84,25 @@ private:
 class CFluidFX: public CEffect
 {
 public:
+    CFluidFX();
     virtual ~CFluidFX();
     void InitEffect(QObject* parent) override;
     bool WindowResize(int width, int height) override;
     void SetMousePosition(int xpos, int ypos);
+    void SetSizeLimit(int maxwidth, int maxheight);
+    float AdjustX() const;
+    float AdjustY() const;
+    int RealWidth() const;
+    int RealHeight() const;
 
 private:
     void DoUpdate(int elapsedMs) override;
     void DoRender() override;
+
+    int m_widthLimit;
+    int m_heightLimit;
+    float m_mouseX;
+    float m_mouseY;
 };
 
 class CPageCurlFX: public CEffect {

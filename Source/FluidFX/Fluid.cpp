@@ -48,8 +48,6 @@ void FluidResize(int width, int height)
         DestroySlab(Pressure);
         DestroySlab(Temperature);
         DestroySurface(Divergence);
-        DestroySurface(Obstacles);
-        DestroySurface(HiresObstacles);
     }
 
     // update all size parameters
@@ -66,16 +64,6 @@ void FluidResize(int width, int height)
     Pressure = CreateSlab(w, h, 1);
     Temperature = CreateSlab(w, h, 1);
     Divergence = CreateSurface(w, h, 3);
-
-    Obstacles = CreateSurface(w, h, 3);
-    CreateObstacles(Obstacles, w, h, w/2, h/2, FillProgram,
-                    BorderObstacleVbo, CircleObstacleVbo);
-
-    w = width * 2;
-    h = height * 2;
-    HiresObstacles = CreateSurface(w, h, 1);
-    CreateObstacles(HiresObstacles, w, h, w/2, h/2, FillProgram,
-                    nullptr, ForRenderCircleObstacleVbo);
 
     ClearSurface(Temperature.Ping, AmbientTemperature);
 }
@@ -167,26 +155,42 @@ void FluidCheckCondition(bool success, const char* errorMsg)
     }
 }
 
-void FluidSetCirclePosition(int xpos, int ypos, int width, int height)
+void FluidSetCirclePosition(float xpos, float ypos, int width, int height,
+                            float xadjuster, float yadjuster)
 {
     int w = width / 2; // i.e. GridWidth;
     int h = height / 2; // i.e. GridHeight;
 
-    ypos = height - ypos;
-    int x = xpos / 2;
-    int y = ypos / 2;
-    CreateObstacles(Obstacles, w, h, x, y, FillProgram,
-        nullptr, CircleObstacleVbo);
+    ypos = 1.f - ypos;
+    CreateObstacles(Obstacles, w, h, xadjuster, yadjuster, xpos, ypos,
+                    FillProgram, BorderObstacleVbo, CircleObstacleVbo);
 
     w = width * 2;
     h = height * 2;
-    x = xpos * 2;
-    y = ypos * 2;
-    CreateObstacles(HiresObstacles, w, h, x, y, FillProgram,
-        nullptr, ForRenderCircleObstacleVbo);
+    CreateObstacles(HiresObstacles, w, h, xadjuster, yadjuster, xpos, ypos,
+                    FillProgram, ForRenderBorderObstacleVbo, ForRenderCircleObstacleVbo);
 
     // bind framebuffer back to zero, prevent obstacles framebuffer be cleared
     // accidently
     GL().glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FluidObstacleResize(float xpos, float ypos, int width, int height,
+                         float xadjuster, float yadjuster)
+{
+    int w = width / 2; // i.e. GridWidth;
+    int h = height / 2; // i.e. GridHeight;
+
+    if (GridWidth != 0)
+    {
+        DestroySurface(Obstacles);
+        DestroySurface(HiresObstacles);
+    }
+
+    Obstacles = CreateSurface(w, h, 3);
+    w = width * 2;
+    h = height * 2;
+    HiresObstacles = CreateSurface(w, h, 1);
+    FluidSetCirclePosition(xpos, ypos, width, height, xadjuster, yadjuster);
 }
 

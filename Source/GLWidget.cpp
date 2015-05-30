@@ -134,6 +134,7 @@ void CGLWidget::initializeGL()
 
     m_fractalfx.BindTexture(&m_videoTex, &m_fractalTex);
     m_basefx.BindTexture(&m_videoTex);
+    m_fluidfx.SetSizeLimit(450, 450);
 
     for (auto& fx: m_effects)
     {

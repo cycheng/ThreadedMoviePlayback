@@ -9,7 +9,8 @@
 #include <math.h>
 #include <iostream>
 void CreateObstacles(Surface dest, int width, int height,
-                     int xpos, int ypos, GLuint program,
+                     float xadjuster, float yadjuster,
+                     float xpos, float ypos, GLuint program,
                      QOpenGLBuffer* border, QOpenGLBuffer* circle)
 {
     GL().glBindFramebuffer(GL_FRAMEBUFFER, dest.FboHandle);
@@ -43,19 +44,19 @@ void CreateObstacles(Surface dest, int width, int height,
         float theta = 0;
         float dtheta = twopi / (float) (slices - 1);
         float* pPositions = &positions[0];
-        float glXpos = (2.f * xpos) / (float)width - 1.f;
-        float glYpos = (2.f * ypos) / (float)height - 1.f;
+        float glXpos = 2.f * xpos - 1.f;
+        float glYpos = 2.f * ypos - 1.f;
 
         for (int i = 0; i < slices; i++) {
             *pPositions++ = 0 + glXpos;
             *pPositions++ = 0 + glYpos;
 
-            *pPositions++ = 0.25f * cos(theta) * height / width + glXpos;
-            *pPositions++ = 0.25f * sin(theta) + glYpos;
+            *pPositions++ = xadjuster * 0.25f * cos(theta) * height / width + glXpos;
+            *pPositions++ = yadjuster * 0.25f * sin(theta) + glYpos;
             theta += dtheta;
 
-            *pPositions++ = 0.25f * cos(theta) * height / width + glXpos;
-            *pPositions++ = 0.25f * sin(theta) + glYpos;
+            *pPositions++ = xadjuster * 0.25f * cos(theta) * height / width + glXpos;
+            *pPositions++ = yadjuster * 0.25f * sin(theta) + glYpos;
         }
         GLsizeiptr size = sizeof(positions);
         circle->bind();
