@@ -55,6 +55,7 @@ public slots:
     void ChangeAlphaValue(int alpha);
     void EnableFX(EFFECT id);
     void DisableFX(EFFECT id);
+    void NewVideo(const char* filename);
 
 protected:
     void initializeGL() override;

@@ -277,6 +277,21 @@ void CGLWidget::DisableFX(EFFECT id)
     }
 }
 
+void CGLWidget::NewVideo(const char* filename)
+{
+    if (m_threadMode)
+        m_videoTex.GetWorker()->Pause();
+
+    m_videoTex.ChangeVideo(filename);
+    // twice resize because if the width and height equal to original value,
+    // we don't resize, so we resize twice to trigger it perform real resize
+    m_videoTex.Resize(4, 4);
+    m_videoTex.Resize(width(), height());
+
+    if (m_threadMode)
+        m_videoTex.GetWorker()->Resume(true);
+}
+
 void CGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int xpos = event->pos().rx();

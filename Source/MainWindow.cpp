@@ -36,6 +36,9 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
 
     m_ui.alphaSlider->valueChanged(50);
 
+    // file open. connect to CMainWindow to avoid "... must be top level ..." error
+    connect(m_ui.actionOpen_Video, SIGNAL(triggered()), this, SLOT(OpenVideoFile()));
+
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
@@ -111,3 +114,11 @@ void CMainWindow::EnablePageCurlFX(bool enabled)
     else
         m_ui.glwidget->DisableFX(CGLWidget::FX_PAGECURL);
 }
+
+void CMainWindow::OpenVideoFile()
+{
+    QString filename = QFileDialog::getOpenFileName(this);
+
+    m_ui.glwidget->NewVideo(filename.toUtf8().constData());
+}
+

@@ -40,6 +40,8 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <addaction name="actionOpen_Video"/>
+    <addaction name="separator"/>
     <addaction name="action_close"/>
    </widget>
    <addaction name="menu_file"/>
@@ -437,6 +439,11 @@
   <action name="action_close">
    <property name="text">
     <string>&amp;close</string>
+   </property>
+  </action>
+  <action name="actionOpen_Video">
+   <property name="text">
+    <string>open video</string>
    </property>
   </action>
  </widget>

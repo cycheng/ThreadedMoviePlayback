@@ -26,6 +26,7 @@ private slots:
     void EnableFractalFX(bool enabled);
     void EnableFluidFX(bool enabled);
     void EnablePageCurlFX(bool enabled);
+    void OpenVideoFile();
 
 private:
     Ui::CMainWindowClass m_ui;
