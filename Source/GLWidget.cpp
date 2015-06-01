@@ -1,5 +1,6 @@
 #include "Stdafx.hpp"
 #include "GLWidget.hpp"
+#include "Worker.hpp"
 #include "FFmpegPlayer.hpp"     // CFFmpeg::initFFmpeg
 #include "Fractal.hpp"
 
