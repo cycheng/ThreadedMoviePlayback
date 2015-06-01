@@ -29,6 +29,12 @@
       <Extensions>cpp;moc</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
+    <Filter Include="Source Files\FluidFX">
+      <UniqueIdentifier>{6638883f-97bd-437e-a0b8-d9b831ede559}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\FluidFXShader">
+      <UniqueIdentifier>{86a68e04-a970-4ac5-8744-df59647def77}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Buffer.cpp">
@@ -52,12 +58,6 @@
     <ClCompile Include="..\Source\Stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_Fractal.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_Fractal.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\Debug\moc_GLWidget.cpp">
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
@@ -72,6 +72,30 @@
     </ClCompile>
     <ClCompile Include="GeneratedFiles\qrc_MainWindow.cpp">
       <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\TextureObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\FluidFX\CreateObstacles.cpp">
+      <Filter>Source Files\FluidFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\FluidFX\CreateProgram.cpp">
+      <Filter>Source Files\FluidFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\FluidFX\CreateSlab.cpp">
+      <Filter>Source Files\FluidFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\FluidFX\Fluid.cpp">
+      <Filter>Source Files\FluidFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\FluidFX\SlabOps.cpp">
+      <Filter>Source Files\FluidFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Effect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Worker.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,10 +128,54 @@
     <ClInclude Include="..\Source\Stdafx.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\TextureObject.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\FluidFX\Fluid.hpp">
+      <Filter>Source Files\FluidFX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Effect.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Worker.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\Source\Resources\lookup.png">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Source\FluidFX\shader\Advect.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\Buoyancy.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\ComputeDivergence.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\Jacobi.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\Splat.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\SubtractGradient.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\Fluid.vert">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\Visualize.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\FluidFX\shader\Fill.frag">
+      <Filter>Resource Files\FluidFXShader</Filter>
+    </None>
+    <None Include="..\Source\Resources\page-curl.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
