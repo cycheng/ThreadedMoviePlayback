@@ -124,8 +124,13 @@ void CGLWidget::initializeGL()
         });
 
     // initialize texture objects
+
     CFFmpegPlayer::initFFmpeg();
+    // set a default video format, so we can initialize pixelSize. The
+    // format may be changed in ChangeVideo().
+    m_videoTex.SetTextureFormat(GL_RED, GL_R8);
     m_videoTex.ChangeVideo("../TestVideo/big_buck_bunny_480p_stereo.avi");
+
     m_fractalTex.SetTextureFormat(GL_RED, GL_R8);
     m_fractalTex.SetAnimated(false);
     m_fractalTex.SetSeedPoint(QPointF(-0.372867, 0.602788));
@@ -283,6 +288,7 @@ void CGLWidget::NewVideo(const char* filename)
         m_videoTex.GetWorker()->Pause();
 
     m_videoTex.ChangeVideo(filename);
+
     // twice resize because if the width and height equal to original value,
     // we don't resize, so we resize twice to trigger it perform real resize
     m_videoTex.Resize(4, 4);

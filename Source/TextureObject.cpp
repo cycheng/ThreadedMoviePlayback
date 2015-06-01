@@ -302,6 +302,11 @@ void CTextureObject::SetTextureFormat(GLenum bufferFmt, GLint internalFmt)
     m_bufferFmt = bufferFmt;
     m_internalFmt = internalFmt;
     m_buffer.SetPixelSize(GetGLPixelSize(bufferFmt));
+
+    if (m_worker)
+    {
+        m_worker->GetInternalBuffer()->SetPixelSize(GetGLPixelSize(bufferFmt));
+    }
 }
 
 CBuffer* CTextureObject::GetBuffer()
@@ -370,6 +375,12 @@ void CTextureObject::UpdateTexture(const CBuffer* buf)
 
 void CVideoTexture::DoUpdate(CBuffer* buffer)
 {
+    if (m_ffmpegPlayer == nullptr)
+    {
+        memset(buffer->GetWorkingBuffer(), 0, buffer->GetSize());
+        return;
+    }
+
     unsigned int pts;
     bool newframe = false;
 
@@ -388,7 +399,10 @@ bool CVideoTexture::Resize(int width, int height)
         return false;
     }
 
-    m_ffmpegPlayer->setOutputSize(width, height);
+    if (m_ffmpegPlayer != nullptr)
+    {
+        m_ffmpegPlayer->setOutputSize(width, height);
+    }
 
     // decode one frame to initialize result buffer
     UpdateByMySelf(0, true);
@@ -414,7 +428,8 @@ bool CVideoTexture::ChangeVideo(const std::string& fileName)
         return true;
     }
     catch (std::runtime_error &e) {
-        std::cout << e.what() << std::endl;
+        std::cout << "The file: '" + fileName + "' seems not exist!" << std::endl
+                  << "Internal error message: " << e.what() << std::endl;
     }
     catch (...) {
         std::cout << "Unknown error" << std::endl;
