@@ -73,6 +73,8 @@ public:
     CBuffer* GetInternalBuffer();
 
 private:
+    void CloneOldBufferResultToNewBuffer(CWorkerBuffer* oldbuf, CWorkerBuffer* newbuf);
+
     QMutex m_mutex;
     QWaitCondition m_runSignal;
     QWaitCondition m_pauseSignal;

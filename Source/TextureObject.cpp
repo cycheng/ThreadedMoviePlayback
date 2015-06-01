@@ -165,10 +165,7 @@ void CWorker::UseDoubleBuffer()
 
     if (old != false)
     {
-        m_buffer->SetPixelSize(old->GetPixelSize());
-        m_buffer->SetTextureSize(old->GetWidth(), old->GetHeight());
-        m_buffer->InitIntermediateBuffer(old->GetIntermediateBuffer(),
-                                         old->GetSize());
+        CloneOldBufferResultToNewBuffer(old.get(), m_buffer.get());
     }
     m_doubleBuffer = true;
 }
@@ -185,12 +182,25 @@ void CWorker::UseTripleBuffer()
 
     if (old != false)
     {
-        m_buffer->SetPixelSize(old->GetPixelSize());
-        m_buffer->SetTextureSize(old->GetWidth(), old->GetHeight());
-        m_buffer->InitIntermediateBuffer(old->GetIntermediateBuffer(),
-            old->GetSize());
+        CloneOldBufferResultToNewBuffer(old.get(), m_buffer.get());
     }
     m_doubleBuffer = false;
+}
+
+void CWorker::CloneOldBufferResultToNewBuffer(CWorkerBuffer* oldbuf, CWorkerBuffer* newbuf)
+{
+    newbuf->SetPixelSize(oldbuf->GetPixelSize());
+    newbuf->SetTextureSize(oldbuf->GetWidth(), oldbuf->GetHeight());
+
+    // choose an updated buffer to copy
+    if (oldbuf->CanWeSwapStableBuffer()) {
+        newbuf->InitAllInternalBuffers(oldbuf->GetIntermediateBuffer(),
+                                       oldbuf->GetSize());
+    }
+    else {
+        newbuf->InitAllInternalBuffers(oldbuf->GetStableBuffer(),
+                                       oldbuf->GetSize());
+    }
 }
 
 void CWorker::BindTextureObject(CTextureObject* texObj)

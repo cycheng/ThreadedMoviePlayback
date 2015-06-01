@@ -125,13 +125,23 @@ void CTripleBuffer::CreateResource(size_t newSize)
 
 void CTripleBuffer::InitIntermediateBufferWithZero()
 {
-    CBuffer::InitIntermediateBufferWithZero();
+    memset(m_workingCopy.get(), 0, GetSize());
     m_workingCopyEmpty = false;
 }
 
 void CTripleBuffer::InitIntermediateBuffer(const unsigned char* data, size_t size)
 {
-    CBuffer::InitIntermediateBuffer(data, size);
+    CheckSize(size);
+    memcpy(m_workingCopy.get(), data, size);
+    m_workingCopyEmpty = false;
+}
+
+void CTripleBuffer::InitAllInternalBuffers(const unsigned char* data, size_t size)
+{
+    CheckSize(size);
+    memcpy(m_stable.get(), data, size);
+    memcpy(m_workingCopy.get(), data, size);
+    memcpy(m_working.get(), data, size);
     m_workingCopyEmpty = false;
 }
 
@@ -208,8 +218,17 @@ void CDoubleBuffer::InitIntermediateBufferWithZero()
 
 void CDoubleBuffer::InitIntermediateBuffer(const unsigned char* data, size_t size)
 {
+    CheckSize(size);
     memcpy(m_working.get(), data, size);
     memcpy(m_stable.get(), data, size);
+}
+
+void CDoubleBuffer::InitAllInternalBuffers(const unsigned char* data, size_t size)
+{
+    CheckSize(size);
+    memcpy(m_working.get(), data, size);
+    memcpy(m_stable.get(), data, size);
+    m_workFull = true;
 }
 
 unsigned char* CDoubleBuffer::GetWorkingBuffer() const
