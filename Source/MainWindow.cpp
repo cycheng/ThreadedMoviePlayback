@@ -34,6 +34,9 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
     connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), m_ui.glwidget, SLOT(ChangeAlphaValue(int)));
     connect(m_ui.alphaSlider, SIGNAL(valueChanged(int)), this, SLOT(UpdateTransparencyLabel(int)));
 
+    // fluid effect signal
+    connect(m_ui.maxWidth, SIGNAL(valueChanged(int)), m_ui.glwidget, SLOT(ChangeFluidMaxWidth(int)));
+    connect(m_ui.maxHeight, SIGNAL(valueChanged(int)), m_ui.glwidget, SLOT(ChangeFluidMaxHeight(int)));
     m_ui.alphaSlider->valueChanged(50);
 
     // file open. connect to CMainWindow to avoid "... must be top level ..." error

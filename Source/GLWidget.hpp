@@ -56,6 +56,8 @@ public slots:
     void EnableFX(EFFECT id);
     void DisableFX(EFFECT id);
     void NewVideo(const char* filename);
+    void ChangeFluidMaxWidth(int value);
+    void ChangeFluidMaxHeight(int value);
 
 protected:
     void initializeGL() override;

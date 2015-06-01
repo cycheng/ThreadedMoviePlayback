@@ -318,8 +318,13 @@ void CFluidFX::SetMousePosition(int xpos, int ypos)
 
 void CFluidFX::SetSizeLimit(int maxwidth, int maxheight)
 {
-    m_widthLimit = maxwidth;
-    m_heightLimit = maxheight;
+    if (maxwidth > 0) {
+        m_widthLimit = maxwidth;
+    }
+
+    if (maxheight > 0) {
+        m_heightLimit = maxheight;
+    }
 }
 
 void CFluidFX::ObstacleCollisionCheck(int xpos, int ypos)

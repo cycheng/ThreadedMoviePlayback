@@ -298,6 +298,21 @@ void CGLWidget::NewVideo(const char* filename)
         m_videoTex.GetWorker()->Resume(true);
 }
 
+void CGLWidget::ChangeFluidMaxWidth(int value)
+{
+    //m_fluidfx
+    m_fluidfx.SetSizeLimit(value, -1);
+    m_fluidfx.WindowResize(4, 4);
+    m_fluidfx.WindowResize(width(), height());
+}
+
+void CGLWidget::ChangeFluidMaxHeight(int value)
+{
+    m_fluidfx.SetSizeLimit(-1, value);
+    m_fluidfx.WindowResize(4, 4);
+    m_fluidfx.WindowResize(width(), height());
+}
+
 void CGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int xpos = event->pos().rx();
