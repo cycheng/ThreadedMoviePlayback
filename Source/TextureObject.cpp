@@ -8,6 +8,7 @@
 
 CWorker::CWorker(): m_pause(true), m_stop(false), m_restart(false),
                     m_inPauseState(false), m_inSwapWaitState(false),
+                    m_doubleBuffer(false),
                     m_buffer(nullptr), m_texObj(nullptr)
 {
 }
@@ -30,7 +31,10 @@ void CWorker::run()
 
     forever
     {
-        m_texObj->DoUpdate(m_buffer.get());
+        if (! m_pause)
+        {
+            m_texObj->DoUpdate(m_buffer.get());
+        }
 
         {
             QMutexLocker locker(&m_mutex);
@@ -49,18 +53,22 @@ void CWorker::run()
                 break;
             }
 
+            if (m_restart)
+            {
+                m_buffer->SetWorkingBufferEmpty();
+                m_restart = false;
+                continue;
+            }
+
+            // We are ready to swap working buffer, set working buffer status
+            // to full so render (paintGL()) can swap it with stable buffer
+            // later.
+            m_buffer->SetWorkingBufferFull();
             if (!m_buffer->CanWeSwapWorkingBuffer())
             {
                 m_inSwapWaitState = true;
                 m_swapBufferSignal.wait(&m_mutex);
                 m_inSwapWaitState = false;
-            }
-
-            // Check if we need to drop this frame **BEFORE** we swap buffer.
-            if (m_restart)
-            {
-                m_restart = false;
-                continue;
             }
 
             m_buffer->SwapWorkingBuffer();
@@ -87,9 +95,13 @@ void CWorker::Pause()
 {
     QMutexLocker locker(&m_mutex);
 
-    if (m_inPauseState || m_inSwapWaitState) {
+    if (m_inPauseState)
+    {
         return;
     }
+
+    if (m_inSwapWaitState)
+        m_swapBufferSignal.wakeOne();
 
     if (m_texObj)
         m_texObj->StopUpdate();
@@ -141,12 +153,44 @@ void CWorker::Stop()
     m_pauseSignal.wait(&m_mutex);
 }
 
+void CWorker::UseDoubleBuffer()
+{
+    if (m_doubleBuffer && m_buffer)
+    {
+        return;
+    }
+
+    std::unique_ptr<CWorkerBuffer> old = std::move(m_buffer);
+    m_buffer.reset(new CDoubleBuffer);
+
+    if (old != false)
+    {
+        m_buffer->SetPixelSize(old->GetPixelSize());
+        m_buffer->SetTextureSize(old->GetWidth(), old->GetHeight());
+        m_buffer->InitIntermediateBuffer(old->GetIntermediateBuffer(),
+                                         old->GetSize());
+    }
+    m_doubleBuffer = true;
+}
+
 void CWorker::UseTripleBuffer()
 {
-    // todo !!
-    assert(m_buffer == false);
+    if (!m_doubleBuffer && m_buffer)
+    {
+        return;
+    }
 
+    std::unique_ptr<CWorkerBuffer> old = std::move(m_buffer);
     m_buffer.reset(new CTripleBuffer);
+
+    if (old != false)
+    {
+        m_buffer->SetPixelSize(old->GetPixelSize());
+        m_buffer->SetTextureSize(old->GetWidth(), old->GetHeight());
+        m_buffer->InitIntermediateBuffer(old->GetIntermediateBuffer(),
+            old->GetSize());
+    }
+    m_doubleBuffer = false;
 }
 
 void CWorker::BindTextureObject(CTextureObject* texObj)

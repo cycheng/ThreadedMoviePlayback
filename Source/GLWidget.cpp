@@ -73,6 +73,16 @@ void CGLWidget::ChangeBufferMode(BUFFER_MODE mode)
     {
         m_threadMode = true;
 
+        for (auto& texObj : m_threadTextures)
+        {
+            if (mode == BF_DOUBLE) {
+                texObj->GetWorker()->UseDoubleBuffer();
+            }
+            else {
+                texObj->GetWorker()->UseTripleBuffer();
+            }
+        }
+
         if (oldmode == BF_SINGLE)
         {
             for (auto& texObj : m_threadTextures)

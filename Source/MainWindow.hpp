@@ -20,6 +20,7 @@ public:
 private slots:
     void TimerUpdate();
     void UseTripleBuffer(bool checked);
+    void UseDoubleBuffer(bool checked);
     void UseSingleBuffer(bool checked);
     void UpdateTransparencyLabel(int value);
     void EnableFractalFX(bool enabled);

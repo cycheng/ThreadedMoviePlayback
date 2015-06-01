@@ -109,6 +109,10 @@ CTripleBuffer::CTripleBuffer() : m_workingCopyEmpty(true)
 {
 }
 
+CTripleBuffer::~CTripleBuffer()
+{
+}
+
 void CTripleBuffer::CreateResource(size_t newSize)
 {
     if (newSize != GetSize())
@@ -168,6 +172,92 @@ void CTripleBuffer::SwapStableBuffer()
     m_workingCopyEmpty = true;
 }
 
+void CTripleBuffer::SetWorkingBufferFull()
+{
+}
+
+void CTripleBuffer::SetWorkingBufferEmpty()
+{
+}
+
+// -----------------------------------------------------------------------------
+// CDoubleBuffer Functions
+// -----------------------------------------------------------------------------
+CDoubleBuffer::CDoubleBuffer() : m_stableEmpty(false), m_workFull(false)
+{
+}
+
+CDoubleBuffer::~CDoubleBuffer()
+{
+}
+
+void CDoubleBuffer::CreateResource(size_t newSize)
+{
+    if (newSize != GetSize())
+    {
+        m_working.reset(new unsigned char[newSize]);
+        m_stable.reset(new unsigned char[newSize]);
+    }
+}
+
+void CDoubleBuffer::InitIntermediateBufferWithZero()
+{
+    memset(m_stable.get(), 0, GetSize());
+    memset(m_working.get(), 0, GetSize());
+}
+
+void CDoubleBuffer::InitIntermediateBuffer(const unsigned char* data, size_t size)
+{
+    memcpy(m_working.get(), data, size);
+    memcpy(m_stable.get(), data, size);
+}
+
+unsigned char* CDoubleBuffer::GetWorkingBuffer() const
+{
+    return m_working.get();
+}
+
+unsigned char* CDoubleBuffer::GetStableBuffer() const
+{
+    return m_stable.get();
+}
+
+unsigned char* CDoubleBuffer::GetIntermediateBuffer() const
+{
+    return m_working.get();
+}
+
+bool CDoubleBuffer::CanWeSwapWorkingBuffer()
+{
+    return !m_workFull;
+}
+
+bool CDoubleBuffer::CanWeSwapStableBuffer()
+{
+    return m_workFull;
+}
+
+void CDoubleBuffer::SwapWorkingBuffer()
+{
+    /* swap in SwapStableBuffer() */
+}
+
+void CDoubleBuffer::SwapStableBuffer()
+{
+    m_stable.swap(m_working);
+    m_workFull = false;
+}
+
+void CDoubleBuffer::SetWorkingBufferFull()
+{
+    m_workFull = true;
+}
+
+void CDoubleBuffer::SetWorkingBufferEmpty()
+{
+    m_workFull = false;
+}
+
 // -----------------------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------------------
@@ -188,3 +278,4 @@ int GetGLPixelSize(GLenum glImgFmt) {
         return 0;
     }
 }
+

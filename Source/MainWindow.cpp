@@ -17,8 +17,11 @@ CMainWindow::CMainWindow(QWidget* parent): QMainWindow(parent), m_timer(nullptr)
 
     connect(m_timer, SIGNAL(timeout()), this, SLOT(TimerUpdate()));
     connect(m_timer, SIGNAL(timeout()), m_ui.glwidget, SLOT(updateGL()));
+
+    // Buffering mode
     connect(m_ui.noThreading, SIGNAL(toggled(bool)), this, SLOT(UseSingleBuffer(bool)));
     connect(m_ui.tripleBuffer, SIGNAL(toggled(bool)), this, SLOT(UseTripleBuffer(bool)));
+    connect(m_ui.doubleBuffer, SIGNAL(toggled(bool)), this, SLOT(UseDoubleBuffer(bool)));
 
     // Effect enable/disable signal
     connect(m_ui.fractalEnabled, SIGNAL(toggled(bool)), this, SLOT(EnableFractalFX(bool)));
@@ -71,6 +74,12 @@ void CMainWindow::UseSingleBuffer(bool checked)
 {
     if (checked)
         m_ui.glwidget->ChangeBufferMode(CGLWidget::BF_SINGLE);
+}
+
+void CMainWindow::UseDoubleBuffer(bool checked)
+{
+    if (checked)
+        m_ui.glwidget->ChangeBufferMode(CGLWidget::BF_DOUBLE);
 }
 
 void CMainWindow::UpdateTransparencyLabel(int value)

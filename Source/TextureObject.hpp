@@ -67,7 +67,7 @@ public:
 
     const CBuffer* GetUpdatedBufferAndSignalWorker();
 
-    //void UseDoubleBuffer();
+    void UseDoubleBuffer();
     void UseTripleBuffer();
     void BindTextureObject(CTextureObject* texObj);
     CBuffer* GetInternalBuffer();
@@ -83,6 +83,7 @@ private:
     bool m_restart;
     bool m_inPauseState;
     bool m_inSwapWaitState;
+    bool m_doubleBuffer;
 
     std::unique_ptr<CWorkerBuffer> m_buffer;
     CTextureObject* m_texObj;

@@ -20,7 +20,7 @@ class CGLWidget: public QGLWidget, protected QOpenGLFunctions
 public:
     enum BUFFER_MODE
     {
-        BF_SINGLE = 1, BF_TRIPLE
+        BF_SINGLE = 1, BF_TRIPLE, BF_DOUBLE
     };
 
     class PauseWorkers
