@@ -122,3 +122,11 @@ void CMainWindow::OpenVideoFile()
     m_ui.glwidget->NewVideo(filename.toUtf8().constData());
 }
 
+void CMainWindow::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Escape)
+    {
+        QApplication::quit();
+    }
+}
+

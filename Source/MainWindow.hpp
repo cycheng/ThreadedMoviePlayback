@@ -29,6 +29,7 @@ private slots:
     void OpenVideoFile();
 
 private:
+    void keyPressEvent(QKeyEvent* event) override;
     Ui::CMainWindowClass m_ui;
     QTimer* m_timer;
     QLabel* m_fps;
