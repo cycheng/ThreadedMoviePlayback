@@ -59,7 +59,6 @@ public:
     virtual void SwapWorkingBuffer() = 0;
     virtual void SwapStableBuffer() = 0;
     virtual void SetWorkingBufferFull() = 0;
-    virtual void SetWorkingBufferEmpty() = 0;
     virtual void InitAllInternalBuffers(const unsigned char* data, size_t size) = 0;
 };
 
@@ -81,7 +80,6 @@ public:
     void SwapWorkingBuffer() override;
     void SwapStableBuffer() override;
     void SetWorkingBufferFull() override;
-    void SetWorkingBufferEmpty() override;
     void InitAllInternalBuffers(const unsigned char* data, size_t size) override;
 
 private:
@@ -112,13 +110,11 @@ public:
     void SwapWorkingBuffer() override;
     void SwapStableBuffer() override;
     void SetWorkingBufferFull() override;
-    void SetWorkingBufferEmpty() override;
     void InitAllInternalBuffers(const unsigned char* data, size_t size) override;
 
 private:
     void CreateResource(size_t newSize) override;
 
-    bool m_stableEmpty;
     bool m_workFull;
 
     u_data_ptr m_working;

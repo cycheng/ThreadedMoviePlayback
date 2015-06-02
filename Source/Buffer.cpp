@@ -186,14 +186,10 @@ void CTripleBuffer::SetWorkingBufferFull()
 {
 }
 
-void CTripleBuffer::SetWorkingBufferEmpty()
-{
-}
-
 // -----------------------------------------------------------------------------
 // CDoubleBuffer Functions
 // -----------------------------------------------------------------------------
-CDoubleBuffer::CDoubleBuffer() : m_stableEmpty(false), m_workFull(false)
+CDoubleBuffer::CDoubleBuffer(): m_workFull(false)
 {
 }
 
@@ -213,14 +209,14 @@ void CDoubleBuffer::CreateResource(size_t newSize)
 void CDoubleBuffer::InitIntermediateBufferWithZero()
 {
     memset(m_stable.get(), 0, GetSize());
-    memset(m_working.get(), 0, GetSize());
+    m_workFull = false;
 }
 
 void CDoubleBuffer::InitIntermediateBuffer(const unsigned char* data, size_t size)
 {
     CheckSize(size);
-    memcpy(m_working.get(), data, size);
     memcpy(m_stable.get(), data, size);
+    m_workFull = false;
 }
 
 void CDoubleBuffer::InitAllInternalBuffers(const unsigned char* data, size_t size)
@@ -228,7 +224,6 @@ void CDoubleBuffer::InitAllInternalBuffers(const unsigned char* data, size_t siz
     CheckSize(size);
     memcpy(m_working.get(), data, size);
     memcpy(m_stable.get(), data, size);
-    m_workFull = true;
 }
 
 unsigned char* CDoubleBuffer::GetWorkingBuffer() const
@@ -259,6 +254,7 @@ bool CDoubleBuffer::CanWeSwapStableBuffer()
 void CDoubleBuffer::SwapWorkingBuffer()
 {
     /* swap in SwapStableBuffer() */
+    m_workFull = false;
 }
 
 void CDoubleBuffer::SwapStableBuffer()
@@ -270,11 +266,6 @@ void CDoubleBuffer::SwapStableBuffer()
 void CDoubleBuffer::SetWorkingBufferFull()
 {
     m_workFull = true;
-}
-
-void CDoubleBuffer::SetWorkingBufferEmpty()
-{
-    m_workFull = false;
 }
 
 // -----------------------------------------------------------------------------

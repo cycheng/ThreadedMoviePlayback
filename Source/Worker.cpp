@@ -3,10 +3,10 @@
 #include "TextureObject.hpp"
 #include <cassert>
 
-CWorker::CWorker() : m_pause(true), m_stop(false), m_restart(false),
-m_inPauseState(false), m_inSwapWaitState(false),
-m_doubleBuffer(false),
-m_buffer(nullptr), m_texObj(nullptr)
+CWorker::CWorker(): m_pause(true), m_stop(false), m_restart(false),
+                    m_inPauseState(false), m_inSwapWaitState(false),
+                    m_doubleBuffer(false),
+                    m_buffer(nullptr), m_texObj(nullptr)
 {
 }
 
@@ -52,7 +52,6 @@ void CWorker::run()
 
             if (m_restart)
             {
-                m_buffer->SetWorkingBufferEmpty();
                 m_restart = false;
                 continue;
             }
@@ -191,12 +190,12 @@ void CWorker::CloneOldBufferResultToNewBuffer(CWorkerBuffer* oldbuf, CWorkerBuff
 
     // choose an updated buffer to copy
     if (oldbuf->CanWeSwapStableBuffer()) {
-        newbuf->InitAllInternalBuffers(oldbuf->GetIntermediateBuffer(),
-            oldbuf->GetSize());
+        newbuf->InitIntermediateBuffer(oldbuf->GetIntermediateBuffer(),
+                                       oldbuf->GetSize());
     }
     else {
         newbuf->InitAllInternalBuffers(oldbuf->GetStableBuffer(),
-            oldbuf->GetSize());
+                                       oldbuf->GetSize());
     }
 }
 
